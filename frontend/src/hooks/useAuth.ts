@@ -52,8 +52,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { user, tokens } = response.data;
         
         // Store tokens in cookies
-        Cookies.set('accessToken', tokens.accessToken, { expires: 1 }); // 1 day
-        Cookies.set('refreshToken', tokens.refreshToken, { expires: 7 }); // 7 days
+        Cookies.set('accessToken', tokens.accessToken, { expires: 1, path: '/' }); // 1 day
+        Cookies.set('refreshToken', tokens.refreshToken, { expires: 7, path: '/' }); // 7 days
         
         setUser(user);
         return { success: true };

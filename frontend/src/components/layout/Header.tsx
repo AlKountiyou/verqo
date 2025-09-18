@@ -48,10 +48,13 @@ export default function Header() {
           {user && (
             <div className="flex items-center space-x-2 text-sm">
               {user.githubAvatarUrl ? (
-                <Image 
+                <Image
                   src={user.githubAvatarUrl} 
+                  width={24}
+                  height={24}
                   alt="Avatar" 
                   className="h-6 w-6 rounded-full"
+                  priority unoptimized
                 />
               ) : (
                 <User className="h-4 w-4" />

@@ -17,7 +17,6 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    githubUrl: '',
     stagingUrl: '',
   });
   const [loading, setLoading] = useState(false);
@@ -32,7 +31,6 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
       const response = await projectsApi.createProject({
         name: formData.name,
         description: formData.description || undefined,
-        githubUrl: formData.githubUrl || undefined,
         stagingUrl: formData.stagingUrl || undefined,
       });
       
@@ -41,7 +39,6 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
         setFormData({
           name: '',
           description: '',
-          githubUrl: '',
           stagingUrl: '',
         });
         onSuccess();
@@ -66,7 +63,6 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
       setFormData({
         name: '',
         description: '',
-        githubUrl: '',
         stagingUrl: '',
       });
       setError('');
@@ -112,23 +108,6 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
             rows={3}
             className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="githubUrl" className="text-sm font-medium">
-            URL GitHub
-          </label>
-          <Input
-            id="githubUrl"
-            type="url"
-            value={formData.githubUrl}
-            onChange={(e) => handleInputChange('githubUrl', e.target.value)}
-            placeholder="https://github.com/username/repository"
-            disabled={loading}
-          />
-          <p className="text-xs text-gray-500">
-            URL du repository GitHub pour les tests automatisés
-          </p>
         </div>
 
         <div className="space-y-2">

@@ -17,7 +17,7 @@ function GitHubCallbackInner() {
   useEffect(() => {
     const handleCallback = async () => {
       const action = searchParams.get('action');
-      
+
       if (action === 'login_success') {
         // Connexion réussie via GitHub
         const accessToken = searchParams.get('access_token');
@@ -45,6 +45,7 @@ function GitHubCallbackInner() {
           email: searchParams.get('github_email'),
           avatar: searchParams.get('github_avatar'),
           name: searchParams.get('github_name'),
+          accessToken: searchParams.get('accessToken'),
         };
         
         // Tenter de lier automatiquement si l'utilisateur est déjà authentifié (cookies JWT présents)
@@ -56,7 +57,7 @@ function GitHubCallbackInner() {
               githubId: githubData.id,
               githubUsername: githubData.username,
               githubAvatarUrl: githubData.avatar || undefined,
-              accessToken: searchParams.get('access_token') || '',
+              accessToken: githubData.accessToken || '',
             });
             setStatus('success');
             setMessage('Compte GitHub lié. Redirection vers le dashboard...');

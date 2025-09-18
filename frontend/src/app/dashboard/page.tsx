@@ -135,7 +135,7 @@ export default function DashboardPage() {
                     : 'Vous n\'êtes assigné à aucun projet pour le moment. Contactez votre administrateur.'}
                 </p>
                 {(user?.role === 'CLIENT' || user?.role === 'ADMIN') && (
-                  <Button>
+                  <Button onClick={() => setShowCreateModal(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Créer un projet
                   </Button>
