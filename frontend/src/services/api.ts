@@ -32,6 +32,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
+    // If the failing request is the login call itself, don't redirect/refresh
+    const urlPath = (originalRequest?.url as string) || '';
+    if (error.response?.status === 401 && (urlPath.includes('/auth/login') || urlPath.includes('/auth/register'))) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       

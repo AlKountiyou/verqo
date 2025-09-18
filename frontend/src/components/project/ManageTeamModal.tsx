@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { projectsApi, userApi } from '@/services/api';
 import { Project, User } from '@/types';
 import { AlertCircle, Loader2, Search, UserPlus, UserMinus, Users } from 'lucide-react';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 
 interface ManageTeamModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export default function ManageTeamModal({ isOpen, onClose, project, onSuccess }:
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [confirm, setConfirm] = useState<{ open: boolean; userId?: string; label?: string }>({ open: false });
 
   useEffect(() => {
     if (isOpen) {
@@ -98,6 +100,7 @@ export default function ManageTeamModal({ isOpen, onClose, project, onSuccess }:
   );
 
   return (
+    <>
     <Modal isOpen={isOpen} onClose={onClose} title={`Gérer l'équipe - ${project.name}`} size="lg">
       <div className="space-y-6">
         {error && (
@@ -132,7 +135,7 @@ export default function ManageTeamModal({ isOpen, onClose, project, onSuccess }:
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => removeDeveloper(dev.user.id)}
+                      onClick={() => setConfirm({ open: true, userId: dev.user.id, label: `${dev.user.firstName} ${dev.user.lastName}`.trim() || dev.user.email })}
                       disabled={actionLoading === dev.user.id}
                     >
                       {actionLoading === dev.user.id ? (
@@ -223,5 +226,19 @@ export default function ManageTeamModal({ isOpen, onClose, project, onSuccess }:
         </div>
       </div>
     </Modal>
+    <ConfirmDialog
+      isOpen={confirm.open}
+      title="Confirmer la suppression"
+      description="Cette action retirera le développeur du projet."
+      confirmLabel="Retirer"
+      confirmTargetLabel={confirm.label || ''}
+      onConfirm={async () => {
+        if (confirm.userId) {
+          await removeDeveloper(confirm.userId);
+        }
+      }}
+      onClose={() => setConfirm({ open: false })}
+    />
+    </>
   );
 }

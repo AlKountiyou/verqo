@@ -9,6 +9,7 @@ import { User } from "@/types";
 import { AlertCircle, Loader2, Trash2, ToggleLeft, ToggleRight, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 export default function AdminUsersPage() {
   const { user } = useAuth();
@@ -17,6 +18,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [workingIds, setWorkingIds] = useState<Record<string, boolean>>({});
+  const [confirm, setConfirm] = useState<{ open: boolean; user?: User }>({ open: false });
 
   const loadUsers = async () => {
     setLoading(true);
@@ -126,7 +128,7 @@ export default function AdminUsersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => deleteUser(u.id)}
+                      onClick={() => setConfirm({ open: true, user: u })}
                       disabled={workingIds[u.id]}
                       className="text-red-600"
                     >
@@ -140,6 +142,19 @@ export default function AdminUsersPage() {
           </div>
         )}
       </main>
+      <ConfirmDialog
+        isOpen={confirm.open}
+        title="Confirmer la suppression"
+        description="Cette action est définitive et supprimera l'utilisateur."
+        confirmLabel="Supprimer"
+        confirmTargetLabel={(confirm.user?.email) || `${confirm.user?.firstName ?? ""} ${confirm.user?.lastName ?? ""}`.trim()}
+        onConfirm={async () => {
+          if (confirm.user) {
+            await deleteUser(confirm.user.id);
+          }
+        }}
+        onClose={() => setConfirm({ open: false })}
+      />
     </div>
   );
 }
