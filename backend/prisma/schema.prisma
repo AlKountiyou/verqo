@@ -23,6 +23,18 @@ enum ProjectStatus {
   ARCHIVED
 }
 
+enum TestFlowStatus {
+  IDLE
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum TestResultStatus {
+  SUCCESS
+  FAILED
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -35,6 +47,14 @@ model User {
   emailVerificationToken String?
   resetPasswordToken String?
   resetPasswordExpires DateTime?
+  
+  // GitHub integration
+  githubId String?
+  githubUsername String?
+  githubAccessToken String?
+  githubAvatarUrl String?
+  githubConnectedAt DateTime?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -75,6 +95,7 @@ model Project {
   // Relations
   owner      User                @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   developers ProjectDeveloper[]
+  testFlows  TestFlow[]
 
   @@map("projects")
 }
@@ -92,4 +113,39 @@ model ProjectDeveloper {
   // Contrainte unique pour éviter les doublons
   @@unique([projectId, userId])
   @@map("project_developers")
+}
+
+model TestFlow {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  projectId   String
+  status      TestFlowStatus @default(IDLE)
+  lastRun     DateTime?
+  duration    Int?           // Duration in milliseconds
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  results TestResult[]
+
+  @@map("test_flows")
+}
+
+model TestResult {
+  id           String           @id @default(cuid())
+  flowId       String
+  status       TestResultStatus
+  startedAt    DateTime
+  completedAt  DateTime?
+  duration     Int?             // Duration in milliseconds
+  logs         String?
+  errorMessage String?
+  createdAt    DateTime         @default(now())
+
+  // Relations
+  flow TestFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@map("test_results")
 }

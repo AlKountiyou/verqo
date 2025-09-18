@@ -25,7 +25,7 @@ export class UserController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.DEV)
+  @Roles(UserRole.ADMIN, UserRole.DEV, UserRole.CLIENT)
   async findAll() {
     const users = await this.userService.findAll();
     return {
@@ -37,7 +37,7 @@ export class UserController {
 
   @Get(':id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.DEV)
+  @Roles(UserRole.ADMIN, UserRole.DEV, UserRole.CLIENT)
   async findOne(@Param('id') id: string) {
     const user = await this.userService.findByIdWithoutPassword(id);
     if (!user) {
