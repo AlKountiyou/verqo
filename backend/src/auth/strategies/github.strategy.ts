@@ -25,23 +25,22 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
   ): Promise<any> {
     const { id, username, displayName, emails, photos } = profile;
 
-    // Récupérer l'email principal
+    // Récupérer l'email principal si disponible (peut être privé/inexistant)
     const email =
-      emails?.find((email: any) => email.primary)?.value || emails?.[0]?.value;
+      emails?.find((item: any) => item?.primary)?.value || emails?.[0]?.value || null;
 
-    if (!email) {
-      throw new Error("Email GitHub requis pour l'authentification");
-    }
-
-    // Chercher l'utilisateur existant par email ou GitHub ID
+    // 1) Chercher d'abord par githubId (cas utilisateur déjà lié)
     let user = await this.databaseService.user.findFirst({
-      where: {
-        OR: [{ email }, { githubId: id.toString() }],
-      },
+      where: { githubId: id.toString() },
     });
 
+    // 2) Sinon, tenter par email si disponible
+    if (!user && email) {
+      user = await this.databaseService.user.findUnique({ where: { email } });
+    }
+
+    // Si utilisateur trouvé, mettre à jour les infos GitHub et retourner
     if (user) {
-      // Mettre à jour les infos GitHub si l'utilisateur existe
       user = await this.databaseService.user.update({
         where: { id: user.id },
         data: {
@@ -50,13 +49,14 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
           githubAccessToken: accessToken,
           githubAvatarUrl: photos?.[0]?.value,
           githubConnectedAt: new Date(),
-          // Mettre à jour le nom si pas défini
-          firstName: user.firstName || displayName?.split(' ')[0],
-          lastName: user.lastName || displayName?.split(' ').slice(1).join(' '),
+          firstName: user.firstName || displayName?.split(' ')[0] || user.firstName,
+          lastName:
+            user.lastName || (displayName ? displayName.split(' ').slice(1).join(' ') : user.lastName),
         },
       });
     }
 
+    // Ne pas créer d'utilisateur ici: laisser le frontend gérer le lien/inscription
     return {
       user,
       githubProfile: {
