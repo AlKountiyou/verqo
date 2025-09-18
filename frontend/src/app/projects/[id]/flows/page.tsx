@@ -9,6 +9,7 @@ import { testFlowsApi, projectsApi } from "@/services/api";
 import { Project, TestFlow } from "@/types";
 import FlowEditorModal from "@/components/project/FlowEditorModal";
 import { Loader2, Plus, Play, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 export default function ProjectFlowsPage() {
   const params = useParams<{ id: string }>();
@@ -21,6 +22,7 @@ export default function ProjectFlowsPage() {
   const [working, setWorking] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [editing, setEditing] = useState<TestFlow | null>(null);
+  const [confirm, setConfirm] = useState<{ open: boolean; flow?: TestFlow }>({ open: false });
 
   const load = async () => {
     setLoading(true);
@@ -134,7 +136,7 @@ export default function ProjectFlowsPage() {
                       <Button variant="outline" size="sm" onClick={() => { setEditing(flow); setShowEditor(true); }}>
                         <Pencil className="h-4 w-4 mr-1" /> Éditer
                       </Button>
-                      <Button variant="outline" size="sm" className="text-red-600" onClick={() => removeFlow(flow.id)}>
+                      <Button variant="outline" size="sm" className="text-red-600" onClick={() => setConfirm({ open: true, flow })}>
                         <Trash2 className="h-4 w-4 mr-1" /> Supprimer
                       </Button>
                     </div>
@@ -160,6 +162,18 @@ export default function ProjectFlowsPage() {
             ]));
           }
         }}
+      />
+
+      <ConfirmDialog
+        isOpen={confirm.open}
+        title="Confirmer la suppression"
+        description="Cette action supprimera le flow de test."
+        confirmLabel="Supprimer"
+        confirmTargetLabel={confirm.flow?.name || ''}
+        onConfirm={async () => {
+          if (confirm.flow) removeFlow(confirm.flow.id);
+        }}
+        onClose={() => setConfirm({ open: false })}
       />
     </div>
   );

@@ -9,13 +9,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import StatsCards from '@/components/dashboard/StatsCards';
-import { Plus, Folder, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Folder, AlertCircle, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { projects, loading, error, refreshProjects } = useProjects();
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id?: string; name?: string }>({ open: false });
 
   const handleRefresh = async () => {
     setRefreshing(true);

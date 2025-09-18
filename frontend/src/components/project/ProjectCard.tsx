@@ -5,13 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Project, TestFlow } from '@/types';
-import { Github, Globe, Users, Play, Calendar, Clock } from 'lucide-react';
+import { Github, Globe, Users, Play, Calendar, Clock, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import FlowCard from './FlowCard';
 import GitHubConnection from './GitHubConnection';
 import ManageTeamModal from './ManageTeamModal';
-import { testFlowsApi } from '@/services/api';
+import { testFlowsApi, projectsApi } from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 
 interface ProjectCardProps {
   project: Project;
@@ -26,6 +27,7 @@ export default function ProjectCard({ project, onProjectUpdate }: ProjectCardPro
   const [showFlows, setShowFlows] = useState(false);
   const [hasRepoAccess, setHasRepoAccess] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean } >({ open: false });
 
   const getStatusColor = (status: Project['status']) => {
     switch (status) {
@@ -139,8 +141,8 @@ export default function ProjectCard({ project, onProjectUpdate }: ProjectCardPro
             </div>
           )}
 
-          {/* Bouton gérer l'équipe pour le propriétaire et les admins */}
-          {(user?.role === 'ADMIN' || user?.id === project.ownerId) && (
+          {/* Bouton gérer l'équipe – visible uniquement pour le propriétaire (pas ADMIN) */}
+          {user?.id === project.ownerId && user?.role !== 'ADMIN' && (
             <Button
               variant="outline"
               size="sm"
@@ -151,15 +153,29 @@ export default function ProjectCard({ project, onProjectUpdate }: ProjectCardPro
               Gérer l&apos;équipe
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push(`/projects/${project.id}/flows`)}
-            className="w-full"
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Gérer les tests
-          </Button>
+          {user?.role !== 'ADMIN' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/projects/${project.id}/flows`)}
+              disabled={!hasRepoAccess}
+              className="w-full"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Gérer les tests
+            </Button>
+          )}
+          {(user?.role === 'ADMIN' || user?.id === project.ownerId) && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setConfirmDelete({ open: true })}
+              className="w-full"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Supprimer le projet
+            </Button>
+          )}
         </div>
 
         {/* Links */}
@@ -192,7 +208,7 @@ export default function ProjectCard({ project, onProjectUpdate }: ProjectCardPro
         </div>
 
         {/* GitHub Connection */}
-        {project.githubUrl && (
+        {project.githubUrl && user?.role !== 'ADMIN' && (
           <GitHubConnection 
             githubUrl={project.githubUrl}
             onRepositoryAccess={setHasRepoAccess}
@@ -244,6 +260,18 @@ export default function ProjectCard({ project, onProjectUpdate }: ProjectCardPro
           setShowTeamModal(false);
           onProjectUpdate?.();
         }}
+      />
+      <ConfirmDialog
+        isOpen={confirmDelete.open}
+        title="Confirmer la suppression"
+        description="Cette action est définitive et supprimera le projet."
+        confirmLabel="Supprimer"
+        confirmTargetLabel={project.name}
+        onConfirm={async () => {
+          await projectsApi.deleteProject(project.id);
+          onProjectUpdate?.();
+        }}
+        onClose={() => setConfirmDelete({ open: false })}
       />
     </Card>
   );
