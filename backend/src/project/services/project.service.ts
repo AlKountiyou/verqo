@@ -408,8 +408,21 @@ export class ProjectService {
       return true;
     }
 
-    // Note: Pour les développeurs, on vérifie s'ils sont assignés au projet
-    // Cette vérification sera faite dans une requête séparée si nécessaire
+    // Les développeurs peuvent accéder aux projets auxquels ils sont assignés
+    if (user.role === UserRole.DEV) {
+      const projectWithDevelopers = project as any;
+      const assignedDevelopers = Array.isArray(projectWithDevelopers.developers)
+        ? projectWithDevelopers.developers
+        : [];
+      const isAssigned = assignedDevelopers.some((dev: any) => {
+        // support both shapes: { user: { id } } and { userId }
+        return (dev?.user?.id && dev.user.id === user.id) || (dev?.userId && dev.userId === user.id);
+      });
+      if (isAssigned) {
+        return true;
+      }
+    }
+
     return false;
   }
 
