@@ -158,7 +158,13 @@ export default function ProjectCard({ project, onProjectUpdate }: ProjectCardPro
               variant="outline"
               size="sm"
               onClick={() => router.push(`/projects/${project.id}/flows`)}
-              disabled={!hasRepoAccess}
+              disabled={
+                user?.role === 'DEV'
+                  ? !hasRepoAccess
+                  : user?.role === 'CLIENT'
+                  ? !project.githubUrl
+                  : false
+              }
               className="w-full"
             >
               <Play className="h-4 w-4 mr-2" />
