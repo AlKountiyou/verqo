@@ -38,6 +38,9 @@ export interface TestFlow {
   id: string;
   name: string;
   projectId: string;
+  category: 'BACKEND' | 'FRONTEND' | 'PERFORMANCE' | 'UNIT';
+  objective?: string;
+  methods: string[];
   status: 'IDLE' | 'RUNNING' | 'SUCCESS' | 'FAILED';
   lastRun?: string;
   duration?: number;
@@ -74,4 +77,12 @@ export interface LoginRequest {
 export interface LoginResponse {
   user: User;
   tokens: AuthTokens;
+}
+
+export interface FlowFormData {
+  name: string;
+  description?: string;
+  category: 'BACKEND' | 'FRONTEND' | 'PERFORMANCE' | 'UNIT';
+  objective?: string;
+  methods: string[];
 }

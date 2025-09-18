@@ -191,17 +191,47 @@ export const userApi = {
   },
 };
 
-// Test flows API - Aucune donnée mockée. En attente d'implémentation backend.
+// Test flows API
 export const testFlowsApi = {
-  getFlowsByProject: async (_projectId: string): Promise<TestFlow[]> => {
-    return [];
+  getFlowsByProject: async (projectId: string): Promise<TestFlow[]> => {
+    const response: AxiosResponse<ApiResponse<{ flows: TestFlow[] }>> = await api.get(`/projects/${projectId}/flows`);
+    return response.data.data.flows;
   },
 
-  runTest: async (_flowId: string): Promise<{ success: boolean; message: string }> => {
+  createFlow: async (projectId: string, flowData: {
+    name: string;
+    description?: string;
+    category: 'BACKEND' | 'FRONTEND' | 'PERFORMANCE' | 'UNIT';
+    objective?: string;
+    methods: string[];
+  }): Promise<ApiResponse<{ flow: TestFlow }>> => {
+    const response: AxiosResponse<ApiResponse<{ flow: TestFlow }>> = await api.post(`/projects/${projectId}/flows`, flowData);
+    return response.data;
+  },
+
+  updateFlow: async (projectId: string, flowId: string, flowData: {
+    name?: string;
+    description?: string;
+    category?: 'BACKEND' | 'FRONTEND' | 'PERFORMANCE' | 'UNIT';
+    objective?: string;
+    methods?: string[];
+  }): Promise<ApiResponse<{ flow: TestFlow }>> => {
+    const response: AxiosResponse<ApiResponse<{ flow: TestFlow }>> = await api.put(`/projects/${projectId}/flows/${flowId}`, flowData);
+    return response.data;
+  },
+
+  deleteFlow: async (projectId: string, flowId: string): Promise<ApiResponse<{ message: string }>> => {
+    const response: AxiosResponse<ApiResponse<{ message: string }>> = await api.delete(`/projects/${projectId}/flows/${flowId}`);
+    return response.data;
+  },
+
+  runTest: async (flowId: string): Promise<{ success: boolean; message: string }> => {
+    console.log('Run test for flow:', flowId);
     return { success: false, message: 'Non implémenté côté backend' };
   },
 
-  getTestResults: async (_flowId: string): Promise<TestResult[]> => {
+  getTestResults: async (flowId: string): Promise<TestResult[]> => {
+    console.log('Get test results for flow:', flowId);
     return [];
   },
 };
