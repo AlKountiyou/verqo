@@ -123,6 +123,21 @@ export default function ProjectCard({ project, onProjectUpdate }: ProjectCardPro
           </span>
         </div>
 
+        {/* Repo lié (affichage clair pour tous) */}
+        {project.githubUrl && (
+          <div className="text-sm">
+            <span className="text-muted-foreground">Repository lié: </span>
+            <a
+              href={project.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-blue-600 hover:underline"
+            >
+              {project.githubUrl.replace('https://github.com/', '')}
+            </a>
+          </div>
+        )}
+
         {/* Liste des développeurs et gestion d'équipe */}
         <div className="space-y-3">
           {project.developers.length > 0 && (
@@ -208,10 +223,11 @@ export default function ProjectCard({ project, onProjectUpdate }: ProjectCardPro
         </div>
 
         {/* GitHub Connection */}
-        {project.githubUrl && user?.role !== 'ADMIN' && (
+        {user?.role !== 'ADMIN' && (
           <GitHubConnection 
             githubUrl={project.githubUrl}
             onRepositoryAccess={setHasRepoAccess}
+            projectId={project.id}
           />
         )}
 
