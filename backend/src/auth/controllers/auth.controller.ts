@@ -138,6 +138,20 @@ export class AuthController {
       );
     }
 
+    // S'assurer que le user a bien ses champs GitHub à jour
+    try {
+      console.log('user', user);
+      await this.authService.linkGitHubAccount({
+        userId: user.id,
+        githubId: githubProfile.id,
+        githubUsername: githubProfile.username,
+        githubAvatarUrl: githubProfile.avatarUrl,
+        accessToken: githubProfile.accessToken,
+      });
+    } catch {
+      // Si une erreur survient, rediriger vers le frontend avec les infos GitHub
+    }
+
     // Générer les tokens JWT pour l'utilisateur connecté
     const tokens = await this.authService.generateTokens(user);
 
@@ -201,6 +215,38 @@ export class AuthController {
       return {
         success: false,
         message: `Erreur lors de la déconnexion: ${error.message}`,
+      };
+    }
+  }
+
+  @Post('github/link')
+  @UseGuards(JwtAuthGuard)
+  async linkGitHub(@CurrentUser() user: User, @Body() body: any) {
+    try {
+      const { githubId, githubUsername, githubAvatarUrl, accessToken } = body || {};
+      if (!githubId || !githubUsername || !accessToken) {
+        return {
+          success: false,
+          message: 'Paramètres GitHub manquants',
+        };
+      }
+
+      await this.authService.linkGitHubAccount({
+        userId: user.id,
+        githubId,
+        githubUsername,
+        githubAvatarUrl,
+        accessToken,
+      });
+
+      return {
+        success: true,
+        message: 'Compte GitHub lié avec succès',
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Erreur lors du lien GitHub: ${error.message}`,
       };
     }
   }
