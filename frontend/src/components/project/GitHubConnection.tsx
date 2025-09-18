@@ -157,8 +157,38 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess, projec
 
   // Non connecté à GitHub
   if (!isConnected) {
-    // CLIENT: lecture seule, invite à demander à un développeur
+    // CLIENT: lecture seule
     if (user?.role === 'CLIENT') {
+      // Si un repo est déjà lié, l'afficher (pas de message d'invitation)
+      if (githubUrl) {
+        return (
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-green-900 text-sm flex items-center">
+                <Github className="h-4 w-4 mr-2" />
+                Repository lié
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex items-center justify-between text-sm p-2 rounded border bg-white">
+                <a
+                  href={githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  {githubUrl.replace('https://github.com/', '')}
+                </a>
+                <Badge variant={hasRepoAccess ? 'success' : 'secondary'}>
+                  {hasRepoAccess ? 'Accès confirmé' : 'Accès à vérifier'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      }
+
+      // Aucun repo lié: inviter le client à demander à un dev
       return (
         <Card className="border-orange-200 bg-orange-50">
           <CardHeader className="pb-3">
