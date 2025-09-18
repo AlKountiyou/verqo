@@ -14,9 +14,10 @@ interface GitHubConnectionProps {
   githubUrl?: string;
   onRepositoryAccess?: (hasAccess: boolean) => void;
   projectId?: string;
+  onProjectUpdate?: () => void;
 }
 
-export default function GitHubConnection({ githubUrl, onRepositoryAccess, projectId }: GitHubConnectionProps) {
+export default function GitHubConnection({ githubUrl, onRepositoryAccess, projectId, onProjectUpdate }: GitHubConnectionProps) {
   const { user } = useAuth();
   const [isConnected, setIsConnected] = useState(!!user?.githubUsername);
   const [githubUsername, setGithubUsername] = useState<string>('');
@@ -28,7 +29,6 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess, projec
   const [error, setError] = useState('');
   const [hasRepoAccess, setHasRepoAccess] = useState<boolean | null>(null);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
-  const [confirmUnlinkRepo, setConfirmUnlinkRepo] = useState(false);
 
   useEffect(() => {
     checkGitHubConnection();
@@ -130,6 +130,15 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess, projec
         setRepositories([]);
         setHasRepoAccess(null);
         onRepositoryAccess?.(false);
+        // Si un projet est fourni, vider aussi son githubUrl
+        if (projectId && githubUrl) {
+          try {
+            await projectsApi.updateProject(projectId, { githubUrl: null as any });
+            onProjectUpdate?.();
+          } catch (e) {
+            // no-op
+          }
+        }
       }
     } catch (error) {
       setError('Erreur lors de la déconnexion');
@@ -275,16 +284,9 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess, projec
                 {githubUrl.replace('https://github.com/', '')}
               </a>
             </div>
-            <div className="flex items-center space-x-2">
-              <Badge variant={hasRepoAccess ? 'success' : 'error'}>
-                {hasRepoAccess ? 'Accès confirmé' : 'Accès non confirmé'}
-              </Badge>
-              {user?.role === 'DEV' && projectId && (
-                <Button size="sm" variant="outline" onClick={() => setConfirmUnlinkRepo(true)}>
-                  Désassigner le repo
-                </Button>
-              )}
-            </div>
+            <Badge variant={hasRepoAccess ? 'success' : 'error'}>
+              {hasRepoAccess ? 'Accès confirmé' : 'Accès non confirmé'}
+            </Badge>
           </div>
         )}
 
@@ -384,25 +386,6 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess, projec
           confirmTargetLabel={`@${githubUsername}`}
         />
 
-        <ConfirmDialog
-          isOpen={confirmUnlinkRepo}
-          onClose={() => setConfirmUnlinkRepo(false)}
-          onConfirm={async () => {
-            if (!projectId || !githubUrl) return;
-            try {
-              await projectsApi.updateProject(projectId, { githubUrl: null as any });
-              setConfirmUnlinkRepo(false);
-              setHasRepoAccess(null);
-              onRepositoryAccess?.(false);
-            } catch (e) {
-              // noop, ConfirmDialog already acks errors via console
-            }
-          }}
-          title="Désassigner le repository"
-          description="Le repository ne sera plus lié à ce projet. Cette action est réversible."
-          confirmLabel="Désassigner"
-          confirmTargetLabel={githubUrl ? githubUrl.replace('https://github.com/', '') : ''}
-        />
       </CardContent>
     </Card>
   );
