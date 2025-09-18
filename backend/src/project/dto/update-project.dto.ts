@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUrl, MinLength, MaxLength, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsUrl, MinLength, MaxLength, IsEnum, ValidateIf } from 'class-validator';
 import { ProjectStatus } from '@prisma/client';
 
 export class UpdateProjectDto {
@@ -14,8 +14,9 @@ export class UpdateProjectDto {
   description?: string;
 
   @IsOptional()
+  @ValidateIf((o) => o.githubUrl !== null && o.githubUrl !== '')
   @IsUrl({}, { message: 'L\'URL GitHub doit être valide' })
-  githubUrl?: string;
+  githubUrl?: string | null;
 
   @IsOptional()
   @IsUrl({}, { message: 'L\'URL de staging doit être valide' })
