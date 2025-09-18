@@ -6,22 +6,33 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { authApi } from '@/services/api';
 import { Github, ExternalLink, Unlink, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
+import { projectsApi } from '@/services/api';
+import { useAuth } from '@/hooks/useAuth';
 
 interface GitHubConnectionProps {
   githubUrl?: string;
   onRepositoryAccess?: (hasAccess: boolean) => void;
+  projectId?: string;
 }
 
-export default function GitHubConnection({ githubUrl, onRepositoryAccess }: GitHubConnectionProps) {
-  const [isConnected, setIsConnected] = useState(false);
+export default function GitHubConnection({ githubUrl, onRepositoryAccess, projectId }: GitHubConnectionProps) {
+  const { user } = useAuth();
+  const [isConnected, setIsConnected] = useState(!!user?.githubUsername);
   const [githubUsername, setGithubUsername] = useState<string>('');
   const [repositories, setRepositories] = useState<Array<{ fullName: string }>>([]);
+  const [selecting, setSelecting] = useState(false);
+  const [savingRepo, setSavingRepo] = useState(false);
+  const [selectedRepo, setSelectedRepo] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasRepoAccess, setHasRepoAccess] = useState<boolean | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   useEffect(() => {
     checkGitHubConnection();
+    console.log(githubUsername)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -34,6 +45,7 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess }: GitH
     try {
       setLoading(true);
       const response = await authApi.getUserRepositories();
+      console.log(response)
       
       if (response.success && response.data.connected) {
         setIsConnected(true);
@@ -44,11 +56,12 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess }: GitH
         });
         setRepositories(repos);
       } else {
-        setIsConnected(false);
+        // Si le profil indique déjà un lien GitHub, considérer comme connecté
+        setIsConnected(!!user?.githubUsername);
       }
     } catch (error) {
       console.error('Erreur lors de la vérification de la connexion GitHub:', error);
-      setIsConnected(false);
+      setIsConnected(!!user?.githubUsername);
     } finally {
       setLoading(false);
     }
@@ -91,6 +104,20 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess }: GitH
     }
   };
 
+  const saveRepository = async () => {
+    if (!projectId || !selectedRepo) return;
+    setSavingRepo(true);
+    try {
+      await projectsApi.updateProject(projectId, { githubUrl: `https://github.com/${selectedRepo}` });
+      setSelecting(false);
+      onRepositoryAccess?.(true);
+    } catch {
+      setError('Impossible d\'enregistrer le repository sur le projet');
+    } finally {
+      setSavingRepo(false);
+    }
+  };
+
   const disconnectFromGitHub = async () => {
     try {
       setLoading(true);
@@ -123,7 +150,31 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess }: GitH
     );
   }
 
+  // ADMIN: ne voit pas la section GitHub
+  if (user?.role === 'ADMIN') {
+    return null;
+  }
+
+  // Non connecté à GitHub
   if (!isConnected) {
+    // CLIENT: lecture seule, invite à demander à un développeur
+    if (user?.role === 'CLIENT') {
+      return (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-orange-900 text-sm flex items-center">
+              <Github className="h-4 w-4 mr-2" />
+              Intégration GitHub
+            </CardTitle>
+            <CardDescription className="text-orange-700">
+              Un développeur doit connecter GitHub et lier un repository pour ce projet.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      );
+    }
+
+    // DEV: peut connecter GitHub
     return (
       <Card className="border-orange-200 bg-orange-50">
         <CardHeader className="pb-3">
@@ -160,6 +211,7 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess }: GitH
     );
   }
 
+  // Connecté à GitHub
   return (
     <Card className="border-green-200 bg-green-50">
       <CardHeader className="pb-3">
@@ -178,6 +230,57 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess }: GitH
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0 space-y-3">
+        {/* Repo actuellement lié */}
+        {githubUrl && (
+          <div className="flex items-center justify-between text-sm p-2 rounded border bg-white">
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-700">Repository lié :</span>
+              <a
+                href={githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                {githubUrl.replace('https://github.com/', '')}
+              </a>
+            </div>
+            <Badge variant={hasRepoAccess ? 'success' : 'error'}>
+              {hasRepoAccess ? 'Accès confirmé' : 'Accès non confirmé'}
+            </Badge>
+          </div>
+        )}
+
+        {/* Choisir et lier un repo au projet (DEV uniquement) */}
+        {projectId && user?.role === 'DEV' && !githubUrl && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Lier un repository GitHub</span>
+              <Button variant="outline" size="sm" onClick={() => setSelecting(s => !s)}>
+                {selecting ? 'Annuler' : 'Choisir'}
+              </Button>
+            </div>
+            {selecting && (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Rechercher (owner/repo)"
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  onChange={(e) => setSelectedRepo(e.target.value)}
+                  list="github-repos"
+                />
+                <datalist id="github-repos">
+                  {repositories.map((r) => (
+                    <option key={r.fullName} value={r.fullName} />
+                  ))}
+                </datalist>
+                <Button size="sm" onClick={saveRepository} disabled={!selectedRepo || savingRepo}>
+                  {savingRepo ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Lier ce repo'}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Statut d'accès au repository */}
         {githubUrl && (
           <div className="flex items-center justify-between text-sm">
@@ -214,20 +317,34 @@ export default function GitHubConnection({ githubUrl, onRepositoryAccess }: GitH
             <ExternalLink className="h-4 w-4 mr-2" />
             Voir GitHub
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={disconnectFromGitHub}
-            disabled={loading}
-            className="text-red-600 hover:text-red-700"
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Unlink className="h-4 w-4" />
-            )}
-          </Button>
+          {user?.role === 'DEV' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setConfirmDisconnect(true)}
+              disabled={loading}
+              className="text-red-600 hover:text-red-700"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Unlink className="h-4 w-4" />
+              )}
+            </Button>
+          )}
         </div>
+        <ConfirmDialog
+          isOpen={confirmDisconnect}
+          onClose={() => setConfirmDisconnect(false)}
+          onConfirm={async () => {
+            await disconnectFromGitHub();
+            setConfirmDisconnect(false);
+          }}
+          title="Déconnecter GitHub"
+          description="Cette action supprimera le lien GitHub de votre compte pour Verqo. Vous pourrez le reconnecter plus tard."
+          confirmLabel="Déconnecter"
+          confirmTargetLabel={`@${githubUsername}`}
+        />
       </CardContent>
     </Card>
   );
