@@ -7,19 +7,27 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  Res,
+  Req,
 } from '@nestjs/common';
+import { Response, Request } from 'express';
 import { AuthService } from '../services/auth.service';
+import { GitHubService } from '../services/github.service';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { GitHubAuthGuard } from '../guards/github-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly githubService: GitHubService,
+  ) {}
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -58,7 +66,9 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
-    const tokens = await this.authService.refreshToken(refreshTokenDto.refreshToken);
+    const tokens = await this.authService.refreshToken(
+      refreshTokenDto.refreshToken,
+    );
     return {
       success: true,
       data: { tokens },
@@ -98,5 +108,100 @@ export class AuthController {
       data: { user: userWithoutPassword },
       message: 'Profil récupéré avec succès',
     };
+  }
+
+  // GitHub OAuth Routes
+  @Get('github')
+  @UseGuards(GitHubAuthGuard)
+  async githubLogin() {
+    // Redirige vers GitHub pour l'authentification
+  }
+
+  @Get('github/callback')
+  @UseGuards(GitHubAuthGuard)
+  async githubCallback(@Req() req: Request, @Res() res: Response) {
+    const { user, githubProfile } = req.user as any;
+
+    if (!user) {
+      // L'utilisateur n'existe pas, rediriger vers le frontend avec les infos GitHub
+      const params = new URLSearchParams({
+        github_id: githubProfile.id,
+        github_username: githubProfile.username,
+        github_email: githubProfile.email,
+        github_avatar: githubProfile.avatarUrl || '',
+        github_name: githubProfile.displayName || '',
+        action: 'link_account',
+      });
+
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/github-callback?${params}`,
+      );
+    }
+
+    // Générer les tokens JWT pour l'utilisateur connecté
+    const tokens = await this.authService.generateTokens(user);
+
+    const params = new URLSearchParams({
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+      action: 'login_success',
+    });
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/auth/github-callback?${params}`,
+    );
+  }
+
+  @Get('github/repositories')
+  @UseGuards(JwtAuthGuard)
+  async getUserRepositories(@CurrentUser() user: User) {
+    try {
+      if (!user.githubAccessToken) {
+        return {
+          success: false,
+          message: 'Compte GitHub non connecté',
+          data: { connected: false },
+        };
+      }
+
+      const repositories = await this.githubService.getUserRepositories(
+        user.id,
+      );
+
+      return {
+        success: true,
+        data: {
+          connected: true,
+          repositories,
+          githubUsername: user.githubUsername,
+        },
+        message: 'Repositories récupérés avec succès',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Erreur lors de la récupération des repositories: ${error.message}`,
+        data: { connected: false },
+      };
+    }
+  }
+
+  @Post('github/disconnect')
+  @UseGuards(JwtAuthGuard)
+  async disconnectGitHub(@CurrentUser() user: User) {
+    try {
+      await this.authService.disconnectGitHub(user.id);
+
+      return {
+        success: true,
+        message: 'Compte GitHub déconnecté avec succès',
+        data: { connected: false },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Erreur lors de la déconnexion: ${error.message}`,
+      };
+    }
   }
 }
