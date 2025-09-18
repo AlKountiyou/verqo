@@ -5,33 +5,34 @@ import { DatabaseService } from '../../database/database.service';
 export class GitHubService {
   constructor(private databaseService: DatabaseService) {}
 
-  async getOctokit(userId: string): Promise<any> {
+  private async getAccessToken(userId: string): Promise<string> {
     const user = await this.databaseService.user.findUnique({
       where: { id: userId },
       select: { githubAccessToken: true },
     });
-
     if (!user?.githubAccessToken) {
       throw new Error('Utilisateur non connecté à GitHub');
     }
-
-    const { Octokit } = await import('@octokit/rest');
-    return new Octokit({
-      auth: user.githubAccessToken,
-    });
+    return user.githubAccessToken;
   }
 
   async getUserRepositories(userId: string): Promise<any[]> {
-    const octokit = await this.getOctokit(userId);
-    
+    const token = await this.getAccessToken(userId);
+    const url = 'https://api.github.com/user/repos?per_page=100&sort=updated&visibility=all';
     try {
-      const { data } = await octokit.rest.repos.listForAuthenticatedUser({
-        visibility: 'all',
-        sort: 'updated',
-        per_page: 100,
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'verqo-app',
+        },
       });
-
-      return data.map(repo => ({
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`GitHub API ${res.status}: ${text}`);
+      }
+      const data: any[] = await res.json();
+      return data.map((repo: any) => ({
         id: repo.id,
         name: repo.name,
         fullName: repo.full_name,
@@ -46,20 +47,27 @@ export class GitHubService {
         updatedAt: repo.updated_at,
         defaultBranch: repo.default_branch,
       }));
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Erreur lors de la récupération des repositories: ${error.message}`);
     }
   }
 
   async getRepositoryDetails(userId: string, owner: string, repo: string): Promise<any> {
-    const octokit = await this.getOctokit(userId);
-    
+    const token = await this.getAccessToken(userId);
+    const url = `https://api.github.com/repos/${owner}/${repo}`;
     try {
-      const { data } = await octokit.rest.repos.get({
-        owner,
-        repo,
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'verqo-app',
+        },
       });
-
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`GitHub API ${res.status}: ${text}`);
+      }
+      const data: any = await res.json();
       return {
         id: data.id,
         name: data.name,
@@ -76,23 +84,30 @@ export class GitHubService {
         hasWiki: data.has_wiki,
         permissions: data.permissions,
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Erreur lors de la récupération du repository: ${error.message}`);
     }
   }
 
   async getRepositoryContents(userId: string, owner: string, repo: string, path = ''): Promise<any[]> {
-    const octokit = await this.getOctokit(userId);
-    
+    const token = await this.getAccessToken(userId);
+    const encodedPath = encodeURIComponent(path);
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}`;
     try {
-      const { data } = await octokit.rest.repos.getContent({
-        owner,
-        repo,
-        path,
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'verqo-app',
+        },
       });
-
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`GitHub API ${res.status}: ${text}`);
+      }
+      const data: any = await res.json();
       return Array.isArray(data) ? data : [data];
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Erreur lors de la récupération du contenu: ${error.message}`);
     }
   }
