@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
   const accessToken = request.cookies.get('accessToken')?.value;
   
   // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/register'];
+  const publicRoutes = ['/login', '/register', '/auth/github-callback'];
   const isPublicRoute = publicRoutes.includes(pathname);
   
   // If user is not authenticated and trying to access a protected route
