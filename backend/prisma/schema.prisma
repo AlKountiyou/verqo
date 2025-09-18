@@ -35,6 +35,13 @@ enum TestResultStatus {
   FAILED
 }
 
+enum TestFlowCategory {
+  BACKEND
+  FRONTEND
+  PERFORMANCE
+  UNIT
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -120,6 +127,9 @@ model TestFlow {
   name        String
   description String?
   projectId   String
+  category    TestFlowCategory
+  objective   String?
+  methods     String[]       @default([])
   status      TestFlowStatus @default(IDLE)
   lastRun     DateTime?
   duration    Int?           // Duration in milliseconds
