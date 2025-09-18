@@ -184,4 +184,19 @@ export class AuthService {
 
     return { message: 'Email vérifié avec succès' };
   }
+
+  async disconnectGitHub(userId: string): Promise<{ message: string }> {
+    await this.databaseService.user.update({
+      where: { id: userId },
+      data: {
+        githubId: null,
+        githubUsername: null,
+        githubAccessToken: null,
+        githubAvatarUrl: null,
+        githubConnectedAt: null,
+      },
+    });
+
+    return { message: 'Compte GitHub déconnecté avec succès' };
+  }
 }
