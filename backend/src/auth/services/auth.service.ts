@@ -186,6 +186,29 @@ export class AuthService {
   }
 
   async disconnectGitHub(userId: string): Promise<{ message: string }> {
+    // Révoquer le token côté GitHub si possible
+    try {
+      const user = await this.databaseService.user.findUnique({
+        where: { id: userId },
+        select: { githubAccessToken: true },
+      });
+      const clientId = this.configService.get<string>('GITHUB_CLIENT_ID');
+      const clientSecret = this.configService.get<string>('GITHUB_CLIENT_SECRET');
+      if (user?.githubAccessToken && clientId && clientSecret) {
+        await fetch(`https://api.github.com/applications/${clientId}/token`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/vnd.github+json',
+            Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+          },
+          body: JSON.stringify({ access_token: user.githubAccessToken }),
+        });
+      }
+    } catch {
+      // Ignore revocation errors to not block local disconnect
+    }
+
     await this.databaseService.user.update({
       where: { id: userId },
       data: {
@@ -198,5 +221,25 @@ export class AuthService {
     });
 
     return { message: 'Compte GitHub déconnecté avec succès' };
+  }
+
+  async linkGitHubAccount(params: {
+    userId: string;
+    githubId: string;
+    githubUsername?: string;
+    githubAvatarUrl?: string;
+    accessToken?: string;
+  }): Promise<void> {
+    const { userId, githubId, githubUsername, githubAvatarUrl, accessToken } = params;
+    await this.databaseService.user.update({
+      where: { id: userId },
+      data: {
+        githubId,
+        githubUsername,
+        githubAvatarUrl,
+        githubAccessToken: accessToken ?? undefined,
+        githubConnectedAt: new Date(),
+      },
+    });
   }
 }

@@ -437,6 +437,20 @@ export class ProjectService {
       return true;
     }
 
+    // Les développeurs assignés peuvent également modifier le projet
+    if (user.role === UserRole.DEV) {
+      const projectWithDevelopers = project as any;
+      const assignedDevelopers = Array.isArray(projectWithDevelopers.developers)
+        ? projectWithDevelopers.developers
+        : [];
+      const isAssigned = assignedDevelopers.some((dev: any) => {
+        return (dev?.user?.id && dev.user.id === user.id) || (dev?.userId && dev.userId === user.id);
+      });
+      if (isAssigned) {
+        return true;
+      }
+    }
+
     return false;
   }
 

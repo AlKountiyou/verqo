@@ -130,6 +130,7 @@ export class AuthController {
         github_email: githubProfile.email,
         github_avatar: githubProfile.avatarUrl || '',
         github_name: githubProfile.displayName || '',
+        accessToken: githubProfile.accessToken,
         action: 'link_account',
       });
 
@@ -140,7 +141,6 @@ export class AuthController {
 
     // S'assurer que le user a bien ses champs GitHub à jour
     try {
-      console.log('user', user);
       await this.authService.linkGitHubAccount({
         userId: user.id,
         githubId: githubProfile.id,
@@ -224,6 +224,11 @@ export class AuthController {
   async linkGitHub(@CurrentUser() user: User, @Body() body: any) {
     try {
       const { githubId, githubUsername, githubAvatarUrl, accessToken } = body || {};
+      console.log('githubId', githubId);
+      console.log('githubUsername', githubUsername);
+      console.log('githubAvatarUrl', githubAvatarUrl);
+      console.log('accessToken', accessToken);
+      console.log('user', user);
       if (!githubId || !githubUsername || !accessToken) {
         return {
           success: false,
