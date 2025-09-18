@@ -1,269 +1,112 @@
-# 🚀 Verqo - SaaS d'automatisation de tests
+# 🚀 Verqo
 
-Plateforme complète pour automatiser les tests de vos projets web avec une interface moderne et un backend robuste.
+**Automated Testing SaaS for Developers & Clients**
 
-## 📋 Vue d'ensemble
-
-**Verqo** est un SaaS qui permet aux équipes de développement de :
-- Gérer leurs projets et équipes
-- Automatiser les tests fonctionnels
-- Suivre les résultats en temps réel
-- Collaborer efficacement selon les rôles
-
-## 🏗️ Architecture
-
-```
-verqo/
-├── backend/          # API NestJS + PostgreSQL + Prisma
-├── frontend/         # Interface Next.js + TailwindCSS
-├── workers/          # Exécuteurs de tests (futur)
-└── start-dev.sh      # Script de démarrage rapide
-```
-
-### Stack Technique
-
-**Backend (NestJS)**
-- 🛡️ **Authentification JWT** avec refresh tokens
-- 🗄️ **PostgreSQL** + **Prisma ORM**
-- 👥 **Gestion des rôles** (Admin/Client/Dev)
-- 📊 **API REST** complète et documentée
-- 🧪 **Tests** unitaires et e2e
-
-**Frontend (Next.js)**
-- ⚡ **Next.js 15** avec App Router
-- 🎨 **TailwindCSS** + **shadcn/ui**
-- 🔐 **Authentification** sécurisée
-- 📱 **Interface responsive** moderne
-- 🔄 **États temps réel** des tests
-
-## 🚀 Démarrage Rapide
-
-### Prérequis
-- **Node.js** 18+ 
-- **PostgreSQL** (ou Docker)
-- **npm** ou **pnpm**
-
-### Installation Automatique
-```bash
-# Cloner le repo
-git clone <your-repo>
-cd verqo
-
-# Démarrer tout automatiquement
-./start-dev.sh
-```
-
-Le script va :
-1. ✅ Installer toutes les dépendances
-2. 🐳 Démarrer PostgreSQL (Docker)
-3. 🔧 Lancer le backend (port 3000)
-4. 🎨 Lancer le frontend (port 3001)
-5. 📊 Configurer la base de données
-
-### Installation Manuelle
-
-#### 1. Backend
-```bash
-cd backend
-
-# Installation
-npm install
-
-# Base de données (Docker)
-docker-compose up -d postgres
-
-# Configuration environnement
-cp .env.example .env
-# Éditer .env avec vos paramètres (voir GITHUB_SETUP.md pour GitHub OAuth)
-
-# Migration et seed
-npm run db:push
-npm run db:seed
-
-# Démarrage
-npm run start:dev  # Port 3000
-```
-
-#### Configuration GitHub OAuth
-```bash
-# Voir le guide détaillé
-cat backend/GITHUB_SETUP.md
-
-# Créer une GitHub App sur https://github.com/settings/developers
-# Ajouter les clés dans backend/.env :
-# GITHUB_CLIENT_ID="your-client-id"
-# GITHUB_CLIENT_SECRET="your-client-secret"
-```
-
-#### 2. Frontend
-```bash
-cd frontend
-
-# Installation  
-npm install
-
-# Configuration
-echo "NEXT_PUBLIC_API_URL=http://localhost:3000" > .env.local
-
-# Démarrage
-npm run dev  # Port 3001
-```
-
-## 🎯 Accès à l'Application
-
-**Frontend**: http://localhost:3001  
-**Backend API**: http://localhost:3000  
-**Prisma Studio**: http://localhost:5555
-
-### 👤 Comptes de Démonstration
-
-| Rôle  | Email | Mot de passe | Permissions |
-|-------|-------|--------------|-------------|
-| **Admin** | admin@verqo.com | admin123 | Gestion complète |
-| **Client** | client@verqo.com | client123 | Projets, tests |
-| **Dev** | dev@verqo.com | dev123 | Tests assignés |
-
-## 🔧 Fonctionnalités
-
-### ✅ Implémentées
-
-#### Authentification & Utilisateurs
-- [x] Inscription/Connexion avec JWT
-- [x] Refresh tokens automatique
-- [x] Gestion des rôles (Admin/Client/Dev)
-- [x] CRUD utilisateurs (Admin/Dev only)
-- [x] Protection des routes
-
-#### Projets
-- [x] Création de projets (Client/Admin)
-- [x] Assignation de développeurs
-- [x] Liens GitHub et staging
-- [x] Statuts de projet (Actif/Pause/Terminé/Archivé)
-- [x] Visualisation dashboard
-
-#### Interface
-- [x] Dashboard avec statistiques
-- [x] Cartes de projets interactives
-- [x] Simulation de tests avec statuts
-- [x] Design responsive et moderne
-- [x] Loading states et gestion d'erreurs
-
-### 🔄 En Cours/Prochainement
-
-#### Tests Automatisés
-- [ ] Configuration des flows de tests
-- [ ] Exécution avec Playwright/Puppeteer
-- [ ] Rapports détaillés et logs
-- [ ] Notifications en temps réel
-- [ ] Intégration CI/CD
-
-#### Fonctionnalités Avancées
-- [ ] Équipes et permissions granulaires
-- [ ] Webhooks et intégrations
-- [ ] Analytics et métriques
-- [ ] API publique avec documentation
-- [ ] Mode multi-tenant
-
-## 📖 Documentation
-
-### API Backend
-- **Swagger**: http://localhost:3000/api (après démarrage)
-- **Prisma Studio**: `npm run db:studio` dans `/backend`
-- **Tests**: `npm run test` et `npm run test:e2e`
-
-### Frontend
-- **Storybook**: À venir
-- **Tests**: `npm run test` dans `/frontend`
-- **Build**: `npm run build`
-
-## 🔒 Sécurité
-
-### Authentification
-- 🔐 **JWT** avec rotation des refresh tokens
-- 🍪 **Cookies sécurisés** (httpOnly, secure)
-- ⏱️ **Expiration automatique** des sessions
-- 🛡️ **CORS** configuré pour le frontend
-
-### Données
-- 🔒 **Hash bcrypt** pour les mots de passe
-- 🔍 **Validation** stricte des inputs (class-validator)
-- 🚫 **Protection** contre les injections SQL (Prisma)
-- 📋 **Logs** d'audit des actions critiques
-
-## 🧪 Tests
-
-### Backend
-```bash
-cd backend
-npm run test          # Tests unitaires
-npm run test:e2e     # Tests end-to-end  
-npm run test:cov     # Couverture de code
-```
-
-### Frontend
-```bash
-cd frontend
-npm run test         # Tests React/Jest
-npm run build        # Vérification build
-```
-
-## 🚀 Déploiement
-
-### Environnements
-
-**Développement**
-- Backend: http://localhost:3000
-- Frontend: http://localhost:3001
-- DB: PostgreSQL local
-
-**Production** (recommandations)
-- **Backend**: Railway, Heroku, DigitalOcean
-- **Frontend**: Vercel, Netlify
-- **Database**: PostgreSQL managé (Railway, Supabase)
-
-### Variables d'Environnement
-
-**Backend (.env)**
-```env
-DATABASE_URL="postgresql://user:pass@localhost:5432/verqo"
-JWT_SECRET="your-secret-key"
-JWT_REFRESH_SECRET="your-refresh-secret"
-JWT_EXPIRATION_TIME="15m"
-JWT_REFRESH_EXPIRATION_TIME="7d"
-PORT=3000
-```
-
-**Frontend (.env.local)**
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3000
-```
-
-## 🤝 Contribution
-
-### Développement
-1. Fork le projet
-2. Créer une branche feature (`git checkout -b feat/amazing-feature`)
-3. Commit les changements (`git commit -m 'Add amazing feature'`)
-4. Push la branche (`git push origin feat/amazing-feature`)
-5. Ouvrir une Pull Request
-
-### Standards
-- **TypeScript** strict
-- **ESLint + Prettier** pour le code
-- **Conventional Commits** pour l'historique
-- **Tests** pour les nouvelles fonctionnalités
-
-## 📞 Support
-
-- 📧 **Email**: support@verqo.com
-- 📖 **Documentation**: [docs.verqo.com](https://docs.verqo.com)
-- 🐛 **Issues**: GitHub Issues
-- 💬 **Discussions**: GitHub Discussions
-
-## 📄 Licence
-
-MIT License - voir le fichier [LICENSE](LICENSE) pour plus de détails.
+Verqo is a next-generation **QA-as-a-Service** platform that automates testing for web and mobile applications.  
+It helps **developers** save time by running reliable automated tests, and **clients** gain confidence by validating that critical flows work as expected.
 
 ---
 
-**Verqo** - Automatisation de tests simplifiée 🚀
+## ✨ Features
+
+### 👨‍💻 For Developers
+- 🔐 Secure login (OAuth2, GitHub, GitLab, Google)
+- ⚡ CI/CD integration (GitHub Actions, GitLab CI, Jenkins)
+- 🧪 Automated web & mobile tests (Playwright, Cypress, Appium)
+- 📊 Detailed technical reports (logs, stacktrace, screenshots, videos)
+- 🔔 Notifications (Slack, Teams, Email)
+
+### 👩‍💼 For Clients
+- ✅ Simple dashboard with test status (green/red)
+- 🔍 Visual flow validation (journeys & results)
+- 📑 Easy-to-read reports (no technical jargon)
+- 📈 Test history & progress tracking
+
+### 🔧 For Admins
+- 🏗️ Multi-tenancy (separate client workspaces)
+- 💳 Billing & subscriptions (Stripe)
+- 📡 Monitoring & alerting (uptime, errors, performance)
+
+---
+
+## 🏗️ Project Structure
+
+    verqo/
+    ├── frontend/     # Next.js + Tailwind dashboard
+    ├── backend/      # NestJS or FastAPI API
+    ├── workers/      # Automated test services (Playwright, Appium)
+    ├── infra/        # Docker, Kubernetes, CI/CD, monitoring
+    ├── docs/         # Project documentation
+    └── .github/      # GitHub Actions workflows
+
+---
+
+## ⚙️ Tech Stack
+
+- **Frontend**: Next.js, React, TailwindCSS, shadcn/ui  
+- **Backend**: NestJS (Node.js) or FastAPI (Python), PostgreSQL, Prisma/SQLAlchemy  
+- **Automation**: Playwright, Cypress, Appium, Postman/Newman  
+- **Infrastructure**: Docker, Kubernetes, AWS/GCP/Azure  
+- **Monitoring**: Prometheus, Grafana  
+- **Payments**: Stripe  
+
+---
+
+## 🚀 Getting Started
+
+### 1️⃣ Clone the repository
+
+    git clone https://github.com/your-username/verqo.git
+    cd verqo
+
+### 2️⃣ Setup frontend
+
+    cd frontend
+    npm install
+    npm run dev
+
+### 3️⃣ Setup backend
+
+If **NestJS**:
+
+    cd backend
+    npm install
+    npm run start:dev
+
+If **FastAPI**:
+
+    cd backend
+    pip install -r requirements.txt
+    uvicorn main:app --reload
+
+### 4️⃣ Run workers
+
+    cd workers/playwright
+    npx playwright test
+
+---
+
+## 📌 Roadmap
+
+- **MVP (3 months)**: Authentication, dashboard, web test execution, simple reports  
+- **Beta (6 months)**: GitHub/GitLab integration, detailed reports, mobile tests, client dashboard  
+- **Production (12 months)**: Multi-tenancy, payments, analytics, monitoring  
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.  
+See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome!  
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## 🌐 Links
+- 💡 [Issues](https://github.com/AlKountiyou/verqo/issues)
