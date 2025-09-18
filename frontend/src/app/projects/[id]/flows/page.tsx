@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { testFlowsApi, projectsApi } from "@/services/api";
-import { Project, TestFlow } from "@/types";
+import { Project, TestFlow, FlowFormData } from "@/types";
 import FlowEditorModal from "@/components/project/FlowEditorModal";
 import { Loader2, Plus, Play, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
@@ -24,7 +24,7 @@ export default function ProjectFlowsPage() {
   const [editing, setEditing] = useState<TestFlow | null>(null);
   const [confirm, setConfirm] = useState<{ open: boolean; flow?: TestFlow }>({ open: false });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [p, f] = await Promise.all([
@@ -36,26 +36,46 @@ export default function ProjectFlowsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     if (projectId) load();
-  }, [projectId]);
+  }, [projectId, load]);
 
-  const handleSaveFlow = async (data: Omit<TestFlow, "id"> & { id?: string }) => {
-    if (data.id) {
-      setFlows(prev => prev.map(fl => (fl.id === data.id ? { ...fl, ...data } as TestFlow : fl)));
-    } else {
-      setFlows(prev => [
-        ...prev,
-        {
-          id: `${projectId}-${Date.now()}`,
+  const handleSaveFlow = async (data: FlowFormData & { id?: string }) => {
+    try {
+      if (data.id) {
+        // Update existing flow
+        const response = await testFlowsApi.updateFlow(projectId, data.id, {
           name: data.name,
           description: data.description,
-          projectId,
-          status: "IDLE",
-        },
-      ]);
+          category: data.category,
+          objective: data.objective,
+          methods: data.methods,
+        });
+        if (response.success) {
+          await load();
+          setShowEditor(false);
+          setEditing(null);
+        }
+      } else {
+        // Create new flow
+        const response = await testFlowsApi.createFlow(projectId, {
+          name: data.name,
+          description: data.description,
+          category: data.category,
+          objective: data.objective,
+          methods: data.methods,
+        });
+        if (response.success) {
+          await load();
+          setShowEditor(false);
+          setEditing(null);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde du flow:', e);
+      // TODO: afficher un toast d'erreur
     }
   };
 
@@ -74,8 +94,16 @@ export default function ProjectFlowsPage() {
     }
   };
 
-  const removeFlow = (id: string) => {
-    setFlows(prev => prev.filter(f => f.id !== id));
+  const removeFlow = async (id: string) => {
+    try {
+      const response = await testFlowsApi.deleteFlow(projectId, id);
+      if (response.success) {
+        await load(); // Recharger la liste depuis l'API
+      }
+    } catch (e) {
+      console.error('Erreur lors de la suppression du flow:', e);
+      // TODO: afficher un toast d'erreur
+    }
   };
 
   const title = useMemo(() => project ? `Flows de tests · ${project.name}` : "Flows de tests", [project]);
@@ -124,6 +152,12 @@ export default function ProjectFlowsPage() {
                       <div className="text-xs mt-1">
                         Statut: <span className="font-medium">{flow.status}</span>
                       </div>
+                      {flow.category && (
+                        <div className="text-xs mt-1 text-gray-600">Catégorie: <span className="font-medium">{flow.category}</span></div>
+                      )}
+                      {flow.objective && (
+                        <div className="text-xs mt-1 text-gray-600">Objectif: <span className="font-medium">{flow.objective}</span></div>
+                      )}
                     </div>
                     <div className="flex items-center space-x-2">
                       <Button variant="outline" size="sm" onClick={() => runFlow(flow.id)} disabled={working === flow.id}>
@@ -152,16 +186,8 @@ export default function ProjectFlowsPage() {
         isOpen={showEditor}
         onClose={() => setShowEditor(false)}
         initial={editing}
-        onSave={async (data) => {
-          if (editing) {
-            setFlows(prev => prev.map(f => (f.id === editing.id ? { ...f, ...data } as TestFlow : f)));
-          } else {
-            setFlows(prev => ([
-              ...prev,
-              { id: `${projectId}-${Date.now()}`, name: data.name, description: data.description, projectId, status: "IDLE" },
-            ]));
-          }
-        }}
+        onSave={handleSaveFlow}
+        projectId={projectId}
       />
 
       <ConfirmDialog
@@ -171,7 +197,7 @@ export default function ProjectFlowsPage() {
         confirmLabel="Supprimer"
         confirmTargetLabel={confirm.flow?.name || ''}
         onConfirm={async () => {
-          if (confirm.flow) removeFlow(confirm.flow.id);
+          if (confirm.flow) await removeFlow(confirm.flow.id);
         }}
         onClose={() => setConfirm({ open: false })}
       />
