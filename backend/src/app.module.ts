@@ -8,6 +8,7 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ProjectModule } from './project/project.module';
+import { TestFlowModule } from './test-flow/test-flow.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ProjectModule } from './project/project.module';
     AuthModule,
     UserModule,
     ProjectModule,
+    TestFlowModule,
   ],
   controllers: [AppController],
   providers: [
