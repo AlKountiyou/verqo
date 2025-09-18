@@ -123,6 +123,11 @@ export const authApi = {
     const response: AxiosResponse<ApiResponse<{ connected: boolean }>> = await api.post('/auth/github/disconnect');
     return response.data;
   },
+
+  linkGitHub: async (payload: { githubId: string; githubUsername: string; githubAvatarUrl?: string; accessToken: string }): Promise<ApiResponse<{ message: string }>> => {
+    const response: AxiosResponse<ApiResponse<{ message: string }>> = await api.post('/auth/github/link', payload);
+    return response.data;
+  },
 };
 
 // Projects API

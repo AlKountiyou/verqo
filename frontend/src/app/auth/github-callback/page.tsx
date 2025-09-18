@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { authApi } from '@/services/api';
 import Cookies from 'js-cookie';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
@@ -23,17 +24,15 @@ function GitHubCallbackInner() {
         const refreshToken = searchParams.get('refresh_token');
         
         if (accessToken && refreshToken) {
-          // Stocker les tokens
-          Cookies.set('accessToken', accessToken, { expires: 1 });
-          Cookies.set('refreshToken', refreshToken, { expires: 7 });
-          
+          // Stocker les tokens (chemin racine pour que le middleware les lise)
+          Cookies.set('accessToken', accessToken, { expires: 1, path: '/' });
+          Cookies.set('refreshToken', refreshToken, { expires: 7, path: '/' });
+
           setStatus('success');
           setMessage('Connexion GitHub réussie !');
-          
-          // Rediriger vers le dashboard après 2 secondes
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 2000);
+
+          // Effectuer une navigation complète pour que le middleware voie les cookies
+          window.location.replace('/dashboard');
         } else {
           setStatus('error');
           setMessage('Tokens manquants dans la réponse');
@@ -48,16 +47,31 @@ function GitHubCallbackInner() {
           name: searchParams.get('github_name'),
         };
         
-        // Stocker temporairement les données GitHub
+        // Tenter de lier automatiquement si l'utilisateur est déjà authentifié (cookies JWT présents)
+        try {
+          const accessToken = Cookies.get('accessToken');
+          if (accessToken && githubData.id && githubData.username) {
+            setMessage('Lien du compte GitHub en cours...');
+            await authApi.linkGitHub({
+              githubId: githubData.id,
+              githubUsername: githubData.username,
+              githubAvatarUrl: githubData.avatar || undefined,
+              accessToken: searchParams.get('access_token') || '',
+            });
+            setStatus('success');
+            setMessage('Compte GitHub lié. Redirection vers le dashboard...');
+            window.location.replace('/dashboard');
+            return;
+          }
+        } catch (e) {
+          // Continuer vers fallback si échec
+        }
+
+        // Fallback: stocker et rediriger
         sessionStorage.setItem('github_linking_data', JSON.stringify(githubData));
-        
         setStatus('success');
-        setMessage('Redirection vers la connexion...');
-        
-        // Rediriger vers la page de login avec un message
-        setTimeout(() => {
-          router.push('/login?github_link=true');
-        }, 2000);
+        setMessage('Redirection vers le dashboard...');
+        window.location.replace('/dashboard');
       } else {
         setStatus('error');
         setMessage('Action non reconnue dans le callback GitHub');
