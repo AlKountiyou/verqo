@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DatabaseService } from '../database/database.service';
 import { TestExecutionService } from './test-execution.service';
-import { TestFlowStatus } from '@prisma/client';
+import { ProjectStatus, TestFlowStatus } from '@prisma/client';
+import { ScreenshotService } from './screenshot.service';
+import { AuthService } from '../auth/services/auth.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TestSchedulerService {
@@ -11,19 +14,31 @@ export class TestSchedulerService {
   constructor(
     private databaseService: DatabaseService,
     private testExecutionService: TestExecutionService,
+    private screenshotService: ScreenshotService,
+    private authService: AuthService,
+    private configService: ConfigService,
   ) {}
+
+  private isSchedulerEnabled(): boolean {
+    return this.configService.get<string>('ENABLE_SCHEDULED_TESTS') === 'true';
+  }
 
   // Exécuter les tests toutes les heures
   @Cron(CronExpression.EVERY_HOUR)
   async executeScheduledTests() {
+    if (!this.isSchedulerEnabled()) {
+      this.logger.log('Scheduler désactivé (ENABLE_SCHEDULED_TESTS != true)');
+      return;
+    }
     this.logger.log('Démarrage de l\'exécution programmée des tests...');
 
     try {
       // Récupérer tous les flows de test actifs qui ne sont pas en cours d'exécution
       const flows = await this.databaseService.testFlow.findMany({
         where: {
-          status: {
-            not: TestFlowStatus.RUNNING,
+          status: TestFlowStatus.IDLE,
+          project: {
+            status: ProjectStatus.ACTIVE,
           },
         },
         include: {
@@ -57,18 +72,20 @@ export class TestSchedulerService {
   // Exécuter les tests critiques toutes les 15 minutes
   @Cron('0 */15 * * * *')
   async executeCriticalTests() {
+    if (!this.isSchedulerEnabled()) {
+      this.logger.log('Scheduler désactivé (ENABLE_SCHEDULED_TESTS != true)');
+      return;
+    }
     this.logger.log('Démarrage de l\'exécution des tests critiques...');
 
     try {
       // Récupérer les flows de test critiques (par exemple, ceux des projets actifs)
       const criticalFlows = await this.databaseService.testFlow.findMany({
         where: {
-          status: {
-            not: TestFlowStatus.RUNNING,
-          },
           project: {
-            status: 'ACTIVE',
+            status: ProjectStatus.ACTIVE,
           },
+          status: TestFlowStatus.IDLE,
         },
         include: {
           project: true,
@@ -85,6 +102,33 @@ export class TestSchedulerService {
       this.logger.log('Exécution des tests critiques terminée');
     } catch (error) {
       this.logger.error('Erreur lors de l\'exécution des tests critiques:', error);
+    }
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_2AM)
+  async cleanupArtifacts() {
+    if (!this.isSchedulerEnabled()) {
+      this.logger.log('Scheduler désactivé (ENABLE_SCHEDULED_TESTS != true)');
+      return;
+    }
+    const screenshotDays =
+      this.configService.get<number>('SCREENSHOT_RETENTION_DAYS') ?? 30;
+    const tokenRetentionDays =
+      this.configService.get<number>('REFRESH_TOKEN_RETENTION_DAYS') ?? 0;
+
+    try {
+      const removedScreenshots = await this.screenshotService.cleanupOldScreenshots(
+        screenshotDays,
+      );
+      const removedTokens = await this.authService.cleanupExpiredRefreshTokens(
+        tokenRetentionDays,
+      );
+
+      this.logger.log(
+        `Cleanup terminé: ${removedScreenshots} screenshots, ${removedTokens} refresh tokens`,
+      );
+    } catch (error) {
+      this.logger.error('Erreur lors du cleanup programmé:', error);
     }
   }
 
@@ -114,6 +158,8 @@ export class TestSchedulerService {
   }
 
   private shouldExecuteFlow(flow: any): boolean {
+    if (flow.status !== TestFlowStatus.IDLE) return false;
+    if (flow.project?.status !== ProjectStatus.ACTIVE) return false;
     // Logique pour déterminer si un flow doit être exécuté
     // Par exemple, basé sur la dernière exécution, la catégorie, etc.
 
@@ -153,7 +199,7 @@ export class TestSchedulerService {
       const flows = await this.databaseService.testFlow.findMany({
         where: { 
           projectId,
-          status: { not: TestFlowStatus.RUNNING }
+          status: TestFlowStatus.IDLE,
         },
       });
 
