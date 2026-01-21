@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { TestFlow, TestFlowCategory, TestResultStatus } from '@prisma/client';
+import { TestFlowCategory, TestResultStatus } from '@prisma/client';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs/promises';
@@ -10,6 +10,16 @@ import { ConfigService } from '@nestjs/config';
 import { runInDocker } from './docker-runner';
 
 const execAsync = promisify(exec);
+type FlowWithProject = {
+  id: string;
+  name: string;
+  category: TestFlowCategory;
+  methods: string[];
+  project: {
+    githubUrl?: string | null;
+    stagingUrl?: string | null;
+  };
+};
 
 export interface TestExecutionResult {
   success: boolean;
@@ -29,11 +39,16 @@ export class TestExecutionService {
     private configService: ConfigService,
   ) {}
 
-  async executeTestFlow(flowId: string, githubAccessToken?: string): Promise<TestExecutionResult> {
-    const flow = await this.databaseService.testFlow.findUnique({
-      where: { id: flowId },
-      include: { project: true },
-    });
+  async executeTestFlow(
+    flowId: string,
+    githubAccessToken?: string,
+  ): Promise<TestExecutionResult> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const flow: FlowWithProject | null =
+      await this.databaseService.testFlow.findUnique({
+        where: { id: flowId },
+        include: { project: true },
+      });
 
     if (!flow) {
       throw new Error('Flow de test non trouvé');
@@ -99,7 +114,8 @@ export class TestExecutionService {
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Erreur inconnue';
 
       this.logger.error(
         `Erreur lors de l'exécution du flow ${flow.name}:`,
@@ -144,7 +160,7 @@ export class TestExecutionService {
   }
 
   private async executeBackendTests(
-    flow: TestFlow & { project: any },
+    flow: FlowWithProject,
     githubAccessToken?: string,
   ): Promise<TestExecutionResult> {
     const project = flow.project;
@@ -193,13 +209,14 @@ export class TestExecutionService {
         success: false,
         duration: 0,
         logs: logs.join('\n'),
-        errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
+        errorMessage:
+          error instanceof Error ? error.message : 'Erreur inconnue',
       };
     }
   }
 
   private async executeFrontendTests(
-    flow: TestFlow & { project: any },
+    flow: FlowWithProject,
     githubAccessToken?: string,
   ): Promise<TestExecutionResult> {
     const project = flow.project;
@@ -246,13 +263,14 @@ export class TestExecutionService {
         success: false,
         duration: 0,
         logs: logs.join('\n'),
-        errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
+        errorMessage:
+          error instanceof Error ? error.message : 'Erreur inconnue',
       };
     }
   }
 
   private async executePerformanceTests(
-    flow: TestFlow & { project: any },
+    flow: FlowWithProject,
   ): Promise<TestExecutionResult> {
     const project = flow.project;
     const logs: string[] = [];
@@ -291,13 +309,14 @@ export class TestExecutionService {
         success: false,
         duration: 0,
         logs: logs.join('\n'),
-        errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
+        errorMessage:
+          error instanceof Error ? error.message : 'Erreur inconnue',
       };
     }
   }
 
   private async executeUnitTests(
-    flow: TestFlow & { project: any },
+    flow: FlowWithProject,
     githubAccessToken?: string,
   ): Promise<TestExecutionResult> {
     const project = flow.project;
@@ -344,7 +363,8 @@ export class TestExecutionService {
         success: false,
         duration: 0,
         logs: logs.join('\n'),
-        errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
+        errorMessage:
+          error instanceof Error ? error.message : 'Erreur inconnue',
       };
     }
   }
@@ -370,31 +390,42 @@ export class TestExecutionService {
         await fs.access(repoPath);
         logs.push(`Mise à jour du repository ${repoName}...`);
         if (githubAccessToken) {
-          await execAsync(`git remote set-url origin ${authUrl}`, { cwd: repoPath });
+          await execAsync(`git remote set-url origin ${authUrl}`, {
+            cwd: repoPath,
+          });
         }
         await execAsync('git pull', { cwd: repoPath });
         if (githubAccessToken) {
-          await execAsync(`git remote set-url origin ${githubUrl}`, { cwd: repoPath });
+          await execAsync(`git remote set-url origin ${githubUrl}`, {
+            cwd: repoPath,
+          });
         }
       } catch {
         logs.push(`Clonage du repository ${repoName}...`);
         await execAsync(`git clone ${authUrl} ${repoPath}`);
         if (githubAccessToken) {
-          await execAsync(`git remote set-url origin ${githubUrl}`, { cwd: repoPath });
+          await execAsync(`git remote set-url origin ${githubUrl}`, {
+            cwd: repoPath,
+          });
         }
       }
 
       return repoPath;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      const message =
+        error instanceof Error ? error.message : 'Erreur inconnue';
       if (
         message.includes('Authentication failed') ||
         message.includes('Repository not found') ||
         message.toLowerCase().includes('access denied')
       ) {
-        throw new Error('Accès refusé au repository GitHub. Vérifiez le token.');
+        throw new Error(
+          'Accès refusé au repository GitHub. Vérifiez le token.',
+        );
       }
-      throw new Error(`Erreur lors du clonage/mise à jour du repository: ${message}`);
+      throw new Error(
+        `Erreur lors du clonage/mise à jour du repository: ${message}`,
+      );
     }
   }
 
@@ -423,26 +454,32 @@ export class TestExecutionService {
 
       // Essayer avec npm test
       try {
-        logs.push('Tentative d\'exécution avec npm test...');
+        logs.push("Tentative d'exécution avec npm test...");
         await this.runDockerCommand(repoPath, logs, 'npm test');
         return { success: true };
       } catch (error) {
-        logs.push(`npm test échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+        logs.push(
+          `npm test échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+        );
       }
 
       // Essayer avec Jest directement
       try {
-        logs.push('Tentative d\'exécution avec Jest...');
+        logs.push("Tentative d'exécution avec Jest...");
         await this.runDockerCommand(repoPath, logs, 'npx jest');
         return { success: true };
       } catch (error) {
-        logs.push(`Jest échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+        logs.push(
+          `Jest échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+        );
       }
 
       logs.push('Aucune méthode de test backend trouvée');
       return { success: false };
     } catch (error) {
-      logs.push(`Erreur lors de l'exécution de la méthode backend: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      logs.push(
+        `Erreur lors de l'exécution de la méthode backend: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+      );
       return { success: false };
     }
   }
@@ -464,14 +501,18 @@ export class TestExecutionService {
           await this.runDockerCommand(repoPath, logs, command);
           return { success: true };
         } catch (error) {
-          logs.push(`${command} échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+          logs.push(
+            `${command} échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+          );
         }
       }
 
       logs.push('Aucune méthode de test frontend trouvée');
       return { success: false };
     } catch (error) {
-      logs.push(`Erreur lors de l'exécution de la méthode frontend: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      logs.push(
+        `Erreur lors de l'exécution de la méthode frontend: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+      );
       return { success: false };
     }
   }
@@ -485,7 +526,10 @@ export class TestExecutionService {
       logs.push(`Exécution de la méthode de performance: ${method}`);
 
       // Utiliser Lighthouse pour les tests de performance
-      if (method.toLowerCase().includes('lighthouse') || method.toLowerCase().includes('performance')) {
+      if (
+        method.toLowerCase().includes('lighthouse') ||
+        method.toLowerCase().includes('performance')
+      ) {
         logs.push('Exécution des tests Lighthouse...');
 
         try {
@@ -497,20 +541,25 @@ export class TestExecutionService {
           );
           const lighthouseResult = JSON.parse(stdout);
 
-          const performanceScore = lighthouseResult.categories.performance.score * 100;
+          const performanceScore =
+            lighthouseResult.categories.performance.score * 100;
           logs.push(`Score de performance: ${performanceScore}%`);
 
           // Considérer comme réussi si le score est > 70
           return { success: performanceScore > 70 };
         } catch (error) {
-          logs.push(`Lighthouse échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+          logs.push(
+            `Lighthouse échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+          );
         }
       }
 
       logs.push('Méthode de performance non reconnue');
       return { success: false };
     } catch (error) {
-      logs.push(`Erreur lors de l'exécution de la méthode de performance: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      logs.push(
+        `Erreur lors de l'exécution de la méthode de performance: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+      );
       return { success: false };
     }
   }
@@ -537,14 +586,18 @@ export class TestExecutionService {
           await this.runDockerCommand(repoPath, logs, command);
           return { success: true };
         } catch (error) {
-          logs.push(`${command} échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+          logs.push(
+            `${command} échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+          );
         }
       }
 
       logs.push('Aucune méthode de test unitaire trouvée');
       return { success: false };
     } catch (error) {
-      logs.push(`Erreur lors de l'exécution de la méthode unitaire: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      logs.push(
+        `Erreur lors de l'exécution de la méthode unitaire: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+      );
       return { success: false };
     }
   }
@@ -575,11 +628,14 @@ export class TestExecutionService {
       await execAsync('docker version');
       this.dockerChecked = true;
     } catch {
-      throw new Error('Docker est requis pour l\'exécution des tests');
+      throw new Error("Docker est requis pour l'exécution des tests");
     }
   }
 
-  private async installDependencies(repoPath: string, logs: string[]): Promise<void> {
+  private async installDependencies(
+    repoPath: string,
+    logs: string[],
+  ): Promise<void> {
     const installCommand = await this.getInstallCommand(repoPath);
     logs.push(`Installation des dépendances: ${installCommand}`);
     await this.runDockerCommand(repoPath, logs, installCommand);
@@ -612,7 +668,9 @@ export class TestExecutionService {
   }
 
   private getTestImage(): string {
-    return this.configService.get<string>('TEST_RUNNER_IMAGE') || 'node:20-bullseye';
+    return (
+      this.configService.get<string>('TEST_RUNNER_IMAGE') || 'node:20-bullseye'
+    );
   }
 
   private getLighthouseImage(): string {
@@ -623,7 +681,9 @@ export class TestExecutionService {
   }
 
   private getPerformanceWorkdir(): string {
-    return this.configService.get<string>('PERFORMANCE_TMP_DIR') || process.cwd();
+    return (
+      this.configService.get<string>('PERFORMANCE_TMP_DIR') || process.cwd()
+    );
   }
 
   private async runDockerCommand(
