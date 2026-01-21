@@ -3,8 +3,10 @@
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/logo';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
-import { LogOut, User, Settings } from 'lucide-react';
+import { LogOut, User, Settings, Github } from 'lucide-react';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -17,24 +19,25 @@ export default function Header() {
   };
 
   return (
-    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="border-b border-verqo-gray-light bg-verqo-white/95 backdrop-blur supports-[backdrop-filter]:bg-verqo-white/60 shadow-sm">
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-6">
           <button
             type="button"
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
             onClick={() => router.push('/dashboard')}
             aria-label="Aller au tableau de bord"
           >
-            <Image src="/verqo_logo.png" alt="Verqo" width={32} height={32} priority unoptimized />
-            <span className="font-bold text-xl">Verqo</span>
+            <Logo size="md" />
           </button>
-          <span className="text-sm text-muted-foreground">
-            Automatisation de tests
-          </span>
+          <div className="hidden md:block">
+            <span className="text-sm text-verqo-gray-medium font-medium">
+              Automatisation de tests
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           {user && (
             <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
               Dashboard
@@ -45,29 +48,44 @@ export default function Header() {
               Admin
             </Button>
           )}
+          
           {user && (
-            <div className="flex items-center space-x-2 text-sm">
-              {user.githubAvatarUrl ? (
-                <Image
-                  src={user.githubAvatarUrl} 
-                  width={24}
-                  height={24}
-                  alt="Avatar" 
-                  className="h-6 w-6 rounded-full"
-                  priority unoptimized
-                />
-              ) : (
-                <User className="h-4 w-4" />
-              )}
-              <span>{user.firstName || user.email}</span>
-              <span className="text-muted-foreground">
-                ({user.role === 'ADMIN' ? 'Admin' : user.role === 'DEV' ? 'Développeur' : 'Client'})
-              </span>
-              {user.githubUsername && (
-                <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                  @{user.githubUsername}
-                </span>
-              )}
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                {user.githubAvatarUrl ? (
+                  <Image
+                    src={user.githubAvatarUrl} 
+                    width={32}
+                    height={32}
+                    alt="Avatar" 
+                    className="h-8 w-8 rounded-full border-2 border-verqo-gray-light"
+                    priority unoptimized
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-verqo-gray-light flex items-center justify-center">
+                    <User className="h-4 w-4 text-verqo-gray-medium" />
+                  </div>
+                )}
+                <div className="hidden md:block">
+                  <div className="text-sm font-medium text-verqo-navy-dark">
+                    {user.firstName || user.email}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge 
+                      variant={user.role === 'ADMIN' ? 'secondary' : user.role === 'DEV' ? 'default' : 'outline'}
+                      size="xs"
+                    >
+                      {user.role === 'ADMIN' ? 'Admin' : user.role === 'DEV' ? 'Dev' : 'Client'}
+                    </Badge>
+                    {user.githubUsername && (
+                      <Badge variant="outline" size="xs" className="flex items-center space-x-1">
+                        <Github className="h-3 w-3" />
+                        <span>@{user.githubUsername}</span>
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           
@@ -75,9 +93,9 @@ export default function Header() {
             <Settings className="h-4 w-4" />
           </Button>
           
-          <Button variant="outline" size="sm" onClick={handleLogout}>
+          <Button variant="secondary" size="sm" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" />
-            Déconnexion
+            <span className="hidden sm:inline">Déconnexion</span>
           </Button>
         </div>
       </div>

@@ -109,6 +109,26 @@ export const authApi = {
     return response.data;
   },
 
+  verifyEmail: async (token: string): Promise<ApiResponse<{ message: string }>> => {
+    const response: AxiosResponse<ApiResponse<{ message: string }>> = await api.get(
+      `/auth/verify-email?token=${encodeURIComponent(token)}`,
+    );
+    return response.data;
+  },
+
+  forgotPassword: async (email: string): Promise<ApiResponse<{ message: string }>> => {
+    const response: AxiosResponse<ApiResponse<{ message: string }>> = await api.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<ApiResponse<{ message: string }>> => {
+    const response: AxiosResponse<ApiResponse<{ message: string }>> = await api.post('/auth/reset-password', {
+      token,
+      newPassword,
+    });
+    return response.data;
+  },
+
   // GitHub OAuth
   connectGitHub: async (): Promise<void> => {
     window.location.href = `${API_BASE_URL}/auth/github`;
@@ -225,14 +245,29 @@ export const testFlowsApi = {
     return response.data;
   },
 
-  runTest: async (flowId: string): Promise<{ success: boolean; message: string }> => {
-    console.log('Run test for flow:', flowId);
-    return { success: false, message: 'Non implémenté côté backend' };
+  runTest: async (projectId: string, flowId: string): Promise<ApiResponse<{ result: unknown }>> => {
+    const response: AxiosResponse<ApiResponse<{ result: unknown }>> = await api.post(`/projects/${projectId}/flows/${flowId}/run`);
+    return response.data;
   },
 
-  getTestResults: async (flowId: string): Promise<TestResult[]> => {
-    console.log('Get test results for flow:', flowId);
-    return [];
+  getTestResults: async (projectId: string, flowId: string, page: number = 1, limit: number = 10): Promise<ApiResponse<{ results: TestResult[]; pagination: unknown }>> => {
+    const response: AxiosResponse<ApiResponse<{ results: TestResult[]; pagination: unknown }>> = await api.get(`/projects/${projectId}/flows/${flowId}/results?page=${page}&limit=${limit}`);
+    return response.data;
+  },
+
+  getTestResultDetail: async (projectId: string, flowId: string, resultId: string): Promise<ApiResponse<{ result: TestResult }>> => {
+    const response: AxiosResponse<ApiResponse<{ result: TestResult }>> = await api.get(`/projects/${projectId}/flows/${flowId}/results/${resultId}`);
+    return response.data;
+  },
+
+  getFlowStatus: async (projectId: string, flowId: string): Promise<ApiResponse<{ id: string; name: string; status: string; lastRun: string; duration: number; category: string; methods: string[] }>> => {
+    const response: AxiosResponse<ApiResponse<{ id: string; name: string; status: string; lastRun: string; duration: number; category: string; methods: string[] }>> = await api.get(`/projects/${projectId}/flows/${flowId}`);
+    return response.data;
+  },
+
+  getScreenshot: (filename: string): string => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    return `${baseUrl}/screenshots/${filename}`;
   },
 };
 

@@ -101,6 +101,43 @@ export class TestFlowService {
     await this.db.testFlow.delete({ where: { id: flowId } });
     return { message: 'Flow de test supprimé avec succès' };
   }
+
+  async getFlowResults(flowId: string) {
+    return this.db.testResult.findMany({
+      where: { flowId },
+      orderBy: { createdAt: 'desc' },
+      take: 50, // Limiter à 50 résultats récents
+    });
+  }
+
+  async getFlowResultDetail(flowId: string, resultId: string) {
+    const result = await this.db.testResult.findFirst({
+      where: { 
+        id: resultId,
+        flowId: flowId 
+      },
+    });
+
+    if (!result) {
+      throw new NotFoundException('Résultat de test non trouvé');
+    }
+
+    // Parser les logs JSON si nécessaire
+    let parsedLogs = [];
+    if (result.logs) {
+      try {
+        parsedLogs = JSON.parse(result.logs);
+      } catch {
+        // Si ce n'est pas du JSON, traiter comme du texte simple
+        parsedLogs = [result.logs];
+      }
+    }
+
+    return {
+      ...result,
+      logs: parsedLogs,
+    };
+  }
 }
 
 

@@ -1,29 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222.2 84% 4.9%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --radius: 0.5rem;
+  /* Verqo Design System Colors */
+  --verqo-navy-dark: 210 100% 8%;      /* #0D1B2A */
+  --verqo-navy-medium: 210 100% 12%;   /* #1B263B */
+  --verqo-turquoise: 170 100% 39%;     /* #00C9A7 */
+  --verqo-white: 0 0% 100%;            /* #FFFFFF */
+  --verqo-gray-light: 0 0% 90%;        /* #E5E5E5 */
+  --verqo-gray-medium: 220 15% 60%;    /* #8D99AE */
+  --verqo-red: 350 85% 55%;            /* #E63946 */
+  
+  /* Semantic Colors */
+  --background: var(--verqo-white);
+  --foreground: var(--verqo-navy-dark);
+  --card: var(--verqo-white);
+  --card-foreground: var(--verqo-navy-dark);
+  --popover: var(--verqo-white);
+  --popover-foreground: var(--verqo-navy-dark);
+  --primary: var(--verqo-turquoise);
+  --primary-foreground: var(--verqo-white);
+  --secondary: var(--verqo-navy-medium);
+  --secondary-foreground: var(--verqo-white);
+  --muted: var(--verqo-gray-light);
+  --muted-foreground: var(--verqo-gray-medium);
+  --accent: var(--verqo-turquoise);
+  --accent-foreground: var(--verqo-white);
+  --destructive: var(--verqo-red);
+  --destructive-foreground: var(--verqo-white);
+  --border: var(--verqo-gray-light);
+  --input: var(--verqo-gray-light);
+  --ring: var(--verqo-turquoise);
+  --radius: 0.75rem; /* 12px rounded corners */
+  
+  /* Status Colors */
+  --success: 142 76% 36%;              /* Green for success */
+  --warning: 38 92% 50%;               /* Orange for warning */
+  --info: 199 89% 48%;                 /* Blue for info */
 }
 
 @theme inline {
+  /* Verqo Brand Colors */
+  --color-verqo-navy-dark: hsl(var(--verqo-navy-dark));
+  --color-verqo-navy-medium: hsl(var(--verqo-navy-medium));
+  --color-verqo-turquoise: hsl(var(--verqo-turquoise));
+  --color-verqo-white: hsl(var(--verqo-white));
+  --color-verqo-gray-light: hsl(var(--verqo-gray-light));
+  --color-verqo-gray-medium: hsl(var(--verqo-gray-medium));
+  --color-verqo-red: hsl(var(--verqo-red));
+  
+  /* Semantic Colors */
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
@@ -43,34 +69,114 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  --font-sans: var(--font-inter);
+  
+  /* Status Colors */
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-info: hsl(var(--info));
+  
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Poppins', system-ui, -apple-system, sans-serif;
 }
 
+/* Dark mode - Verqo dark theme */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    --background: var(--verqo-navy-dark);
+    --foreground: var(--verqo-white);
+    --card: var(--verqo-navy-medium);
+    --card-foreground: var(--verqo-white);
+    --popover: var(--verqo-navy-medium);
+    --popover-foreground: var(--verqo-white);
+    --primary: var(--verqo-turquoise);
+    --primary-foreground: var(--verqo-navy-dark);
+    --secondary: var(--verqo-gray-medium);
+    --secondary-foreground: var(--verqo-white);
+    --muted: var(--verqo-gray-medium);
+    --muted-foreground: var(--verqo-gray-light);
+    --accent: var(--verqo-turquoise);
+    --accent-foreground: var(--verqo-navy-dark);
+    --destructive: var(--verqo-red);
+    --destructive-foreground: var(--verqo-white);
+    --border: var(--verqo-gray-medium);
+    --input: var(--verqo-gray-medium);
+    --ring: var(--verqo-turquoise);
   }
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
 }
 
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
+  font-feature-settings: "rlig" 1, "calt" 1;
+  line-height: 1.6;
+}
+
+/* Typography styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Utility classes for Verqo design system */
+.text-verqo-navy {
+  color: hsl(var(--verqo-navy-dark));
+}
+
+.text-verqo-turquoise {
+  color: hsl(var(--verqo-turquoise));
+}
+
+.bg-verqo-navy {
+  background-color: hsl(var(--verqo-navy-dark));
+}
+
+.bg-verqo-turquoise {
+  background-color: hsl(var(--verqo-turquoise));
+}
+
+.border-verqo-turquoise {
+  border-color: hsl(var(--verqo-turquoise));
+}
+
+/* Status indicators */
+.status-success {
+  color: hsl(var(--success));
+}
+
+.status-warning {
+  color: hsl(var(--warning));
+}
+
+.status-error {
+  color: hsl(var(--verqo-red));
+}
+
+.status-info {
+  color: hsl(var(--info));
 }

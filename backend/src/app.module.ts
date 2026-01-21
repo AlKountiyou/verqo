@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ProjectModule } from './project/project.module';
 import { TestFlowModule } from './test-flow/test-flow.module';
+import { TestExecutionModule } from './test-execution/test-execution.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TestFlowModule } from './test-flow/test-flow.module';
     UserModule,
     ProjectModule,
     TestFlowModule,
+    TestExecutionModule,
   ],
   controllers: [AppController],
   providers: [

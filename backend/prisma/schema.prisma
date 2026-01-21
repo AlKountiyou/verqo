@@ -144,15 +144,17 @@ model TestFlow {
 }
 
 model TestResult {
-  id           String           @id @default(cuid())
-  flowId       String
-  status       TestResultStatus
-  startedAt    DateTime
-  completedAt  DateTime?
-  duration     Int?             // Duration in milliseconds
-  logs         String?
-  errorMessage String?
-  createdAt    DateTime         @default(now())
+  id             String           @id @default(cuid())
+  flowId         String
+  status         TestResultStatus
+  startedAt      DateTime
+  endedAt        DateTime?
+  completedAt    DateTime?        // Alias for endedAt for backward compatibility
+  duration       Int?             // Duration in milliseconds
+  logs           String?          // JSON string or plain text
+  errorMessage   String?
+  screenshotUrls String[]         @default([]) // Array of screenshot file paths/URLs
+  createdAt      DateTime         @default(now())
 
   // Relations
   flow TestFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)

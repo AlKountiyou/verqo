@@ -10,6 +10,7 @@ import { Project, TestFlow, FlowFormData } from "@/types";
 import FlowEditorModal from "@/components/project/FlowEditorModal";
 import { Loader2, Plus, Play, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
+import { getTestFlowSocket } from "@/services/test-flow-socket";
 
 export default function ProjectFlowsPage() {
   const params = useParams<{ id: string }>();
@@ -23,6 +24,7 @@ export default function ProjectFlowsPage() {
   const [showEditor, setShowEditor] = useState(false);
   const [editing, setEditing] = useState<TestFlow | null>(null);
   const [confirm, setConfirm] = useState<{ open: boolean; flow?: TestFlow }>({ open: false });
+  const [flowErrors, setFlowErrors] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,6 +43,31 @@ export default function ProjectFlowsPage() {
   useEffect(() => {
     if (projectId) load();
   }, [projectId, load]);
+
+  useEffect(() => {
+    const socket = getTestFlowSocket();
+    const handler = (payload: { flowId: string; status: TestFlow["status"] }) => {
+      setFlows((prev) =>
+        prev.map((flow) =>
+          flow.id === payload.flowId ? { ...flow, status: payload.status } : flow,
+        ),
+      );
+    };
+
+    socket.on("flowStatus", handler);
+
+    return () => {
+      socket.off("flowStatus", handler);
+    };
+  }, []);
+
+  useEffect(() => {
+    const socket = getTestFlowSocket();
+    flows.forEach((flow) => socket.emit("joinFlow", { flowId: flow.id }));
+    return () => {
+      flows.forEach((flow) => socket.emit("leaveFlow", { flowId: flow.id }));
+    };
+  }, [flows]);
 
   const handleSaveFlow = async (data: FlowFormData & { id?: string }) => {
     try {
@@ -81,15 +108,17 @@ export default function ProjectFlowsPage() {
 
   const runFlow = async (id: string) => {
     setWorking(id);
+    setFlowErrors(prev => ({ ...prev, [id]: '' }));
     try {
-      await testFlowsApi.runTest(id);
-      setFlows(prev => prev.map(f => (f.id === id ? { ...f, status: "RUNNING" } : f)));
-      // simulate completion feedback in UI; real-time updates to be wired later
-      setTimeout(() => {
-        setFlows(prev => prev.map(f => (f.id === id ? { ...f, status: Math.random() > 0.3 ? "SUCCESS" : "FAILED" } : f)));
-        setWorking(null);
-      }, 2500);
+      const response = await testFlowsApi.runTest(projectId, id);
+      if (!response.success) {
+        setFlowErrors(prev => ({ ...prev, [id]: response.message || 'Erreur lors de l’exécution' }));
+      } else {
+        setFlows(prev => prev.map(f => (f.id === id ? { ...f, status: "RUNNING" } : f)));
+      }
+      setWorking(null);
     } catch {
+      setFlowErrors(prev => ({ ...prev, [id]: 'Erreur lors de l’exécution' }));
       setWorking(null);
     }
   };
@@ -157,6 +186,11 @@ export default function ProjectFlowsPage() {
                       )}
                       {flow.objective && (
                         <div className="text-xs mt-1 text-gray-600">Objectif: <span className="font-medium">{flow.objective}</span></div>
+                      )}
+                      {flowErrors[flow.id] && (
+                        <div className="text-xs mt-2 text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
+                          {flowErrors[flow.id]}
+                        </div>
                       )}
                     </div>
                     <div className="flex items-center space-x-2">

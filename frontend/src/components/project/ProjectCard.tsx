@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { StatusIndicator, ProjectStatus } from '@/components/ui/status-indicator';
 import { Project, TestFlow } from '@/types';
-import { Github, Globe, Users, Play, Calendar, Clock, Trash2 } from 'lucide-react';
+import { Github, Globe, Users, Play, Calendar, Clock, Trash2, Settings, TestTube } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import FlowCard from './FlowCard';
 import GitHubConnection from './GitHubConnection';
@@ -245,7 +246,7 @@ export default function ProjectCard({ project, onProjectUpdate }: ProjectCardPro
             <div className="space-y-3 mt-4">
               {flows.length > 0 ? (
                 flows.map((flow) => (
-                  <FlowCard key={flow.id} flow={flow} />
+                  <FlowCard key={flow.id} flow={flow} projectId={project.id} />
                 ))
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
