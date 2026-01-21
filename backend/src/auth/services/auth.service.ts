@@ -302,4 +302,17 @@ export class AuthService {
       },
     });
   }
+
+  async cleanupExpiredRefreshTokens(retentionDays: number = 0): Promise<number> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - retentionDays);
+
+    const result = await this.databaseService.refreshToken.deleteMany({
+      where: {
+        expiresAt: { lt: cutoff },
+      },
+    });
+
+    return result.count;
+  }
 }
