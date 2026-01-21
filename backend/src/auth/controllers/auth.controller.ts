@@ -16,6 +16,8 @@ import { GitHubService } from '../services/github.service';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { ForgotPasswordDto } from '../dto/forgot-password.dto';
+import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { GitHubAuthGuard } from '../guards/github-auth.guard';
@@ -96,6 +98,28 @@ export class AuthController {
       success: true,
       data: result,
       message: 'Email vérifié avec succès',
+    };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    const result = await this.authService.requestPasswordReset(dto.email);
+    return {
+      success: true,
+      data: result,
+      message: 'Si un compte existe, un email a été envoyé.',
+    };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    const result = await this.authService.resetPassword(dto.token, dto.newPassword);
+    return {
+      success: true,
+      data: result,
+      message: 'Mot de passe réinitialisé avec succès',
     };
   }
 
