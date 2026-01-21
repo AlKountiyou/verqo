@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TestExecutionService } from './test-execution.service';
-import { TestRunnerService } from './test-runner.service';
-import { TestQueueService } from './test-queue.service';
 import { TestSchedulerService } from './test-scheduler.service';
 import { TestConfigService } from './test-config.service';
 import { ScreenshotService } from './screenshot.service';
@@ -10,14 +8,13 @@ import { TestExecutionController } from './test-execution.controller';
 import { ScreenshotController } from './screenshot.controller';
 import { DatabaseModule } from '../database/database.module';
 import { TestExecutionGateway } from './test-execution.gateway';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [DatabaseModule, ScheduleModule.forRoot()],
+  imports: [DatabaseModule, AuthModule, ScheduleModule.forRoot()],
   controllers: [TestExecutionController, ScreenshotController],
   providers: [
     TestExecutionService,
-    TestRunnerService,
-    TestQueueService,
     TestSchedulerService,
     TestConfigService,
     ScreenshotService,
@@ -25,8 +22,6 @@ import { TestExecutionGateway } from './test-execution.gateway';
   ],
   exports: [
     TestExecutionService,
-    TestRunnerService,
-    TestQueueService,
     TestSchedulerService,
     TestConfigService,
     ScreenshotService,
