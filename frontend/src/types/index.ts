@@ -86,3 +86,16 @@ export interface FlowFormData {
   objective?: string;
   methods: string[];
 }
+
+export interface TestExecutionJob {
+  jobId: string;
+  flowId: string;
+  flowName: string;
+  status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+}
+
+export interface TestResultDetail extends TestResult {
+  logs: string[];
+  screenshotUrls: string[];
+  endedAt?: string;
+}
