@@ -13,6 +13,7 @@ import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { JwtPayload, AuthTokens } from '../interfaces/jwt-payload.interface';
 import { randomBytes } from 'crypto';
+import { EmailService } from './email.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private databaseService: DatabaseService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private emailService: EmailService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{ user: Omit<User, 'password'>; message: string }> {
@@ -56,6 +58,8 @@ export class AuthService {
     // Retourner l'utilisateur sans le mot de passe
     const { password: _, ...userWithoutPassword } = user;
 
+    await this.emailService.sendVerificationEmail(email, emailVerificationToken);
+
     return {
       user: userWithoutPassword,
       message: 'Utilisateur créé avec succès. Veuillez vérifier votre email.',
@@ -71,6 +75,10 @@ export class AuthService {
 
     if (!user.isActive) {
       throw new UnauthorizedException('Compte désactivé');
+    }
+
+    if (!user.emailVerified) {
+      throw new UnauthorizedException('Email non vérifié');
     }
 
     return this.generateTokens(user);
@@ -183,6 +191,58 @@ export class AuthService {
     });
 
     return { message: 'Email vérifié avec succès' };
+  }
+
+  async requestPasswordReset(email: string): Promise<{ message: string }> {
+    const user = await this.databaseService.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return { message: 'Si un compte existe, un email a été envoyé.' };
+    }
+
+    const resetToken = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60); // 1h
+
+    await this.databaseService.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordExpires: expiresAt,
+      },
+    });
+
+    await this.emailService.sendPasswordResetEmail(email, resetToken);
+
+    return { message: 'Si un compte existe, un email a été envoyé.' };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const user = await this.databaseService.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Token de réinitialisation invalide ou expiré');
+    }
+
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    await this.databaseService.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    return { message: 'Mot de passe réinitialisé avec succès' };
   }
 
   async disconnectGitHub(userId: string): Promise<{ message: string }> {
