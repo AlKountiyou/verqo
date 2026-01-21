@@ -10,8 +10,7 @@ import {
   ParseIntPipe,
   DefaultValuePipe
 } from '@nestjs/common';
-import { TestQueueService } from './test-queue.service';
-import { TestRunnerService } from './test-runner.service';
+import { TestExecutionService } from './test-execution.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '@prisma/client';
@@ -21,8 +20,7 @@ import { DatabaseService } from '../database/database.service';
 @UseGuards(JwtAuthGuard)
 export class TestExecutionController {
   constructor(
-    private readonly testQueueService: TestQueueService,
-    private readonly testRunnerService: TestRunnerService,
+    private readonly testExecutionService: TestExecutionService,
     private readonly databaseService: DatabaseService,
   ) {}
 
@@ -74,27 +72,19 @@ export class TestExecutionController {
     }
 
     try {
-      // Add job to queue
-      const job = await this.testQueueService.addTestJob({
+      const result = await this.testExecutionService.executeTestFlow(
         flowId,
-        userId: user.id,
-        projectId: flow.projectId,
-      });
-
+        user.githubAccessToken || undefined,
+      );
       return {
         success: true,
-        data: { 
-          jobId: job.id,
-          flowId: flow.id,
-          flowName: flow.name,
-          status: 'QUEUED'
-        },
-        message: 'Flow de test ajouté à la queue d\'exécution',
+        data: { result },
+        message: 'Flow exécuté avec succès',
       };
     } catch (error) {
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Erreur lors de l\'ajout du flow à la queue',
+        message: error instanceof Error ? error.message : 'Erreur lors de l\'exécution du flow',
       };
     }
   }
@@ -307,29 +297,5 @@ export class TestExecutionController {
     };
   }
 
-  @Get('queue/stats')
-  async getQueueStats(@CurrentUser() user: User) {
-    // Only admins can see queue stats
-    if (user.role !== 'ADMIN') {
-      return { 
-        success: false, 
-        message: 'Accès refusé' 
-      };
-    }
-
-    try {
-      const stats = await this.testQueueService.getQueueStats();
-      
-      return {
-        success: true,
-        data: { stats },
-        message: 'Statistiques de la queue récupérées avec succès',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Erreur lors de la récupération des statistiques',
-      };
-    }
-  }
+  // Queue stats endpoint removed as execution is now synchronous
 }
