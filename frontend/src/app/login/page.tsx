@@ -7,9 +7,9 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/logo';
 import { useAuth } from '@/hooks/useAuth';
-import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
-import Image from 'next/image';
+import { AlertCircle, Eye, EyeOff, Loader2, Github } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -42,12 +42,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-verqo-gray-light to-verqo-white px-4">
+      <div className="w-full max-w-md space-y-8">
         {/* Logo and title */}
-        <div className="text-center">
-          <Image src="/verqo_logo.png" alt="Verqo" width={256} height={256} className="mx-auto" priority unoptimized />
-          <p className="text-gray-600">Automatisation de tests</p>
+        <div className="text-center space-y-4">
+          <div className="flex justify-center mb-0">
+            <Logo variant="icon" size="xxxl" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-display font-bold text-verqo-navy-dark">
+              Bienvenue sur Verqo
+            </h1>
+            <p className="text-verqo-gray-medium mt-2">
+              Automatisation intelligente de tests
+            </p>
+          </div>
         </div>
 
         {/* Login form */}
@@ -124,7 +133,13 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm">
+            <div className="mt-4 text-center text-sm">
+              <Link href="/forgot-password" className="text-primary hover:underline font-medium">
+                Mot de passe oublié ?
+              </Link>
+            </div>
+
+            <div className="mt-4 text-center text-sm">
               <span className="text-gray-600">Pas encore de compte ? </span>
               <Link href="/register" className="text-primary hover:underline font-medium">
                 S&apos;inscrire
