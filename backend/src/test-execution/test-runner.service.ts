@@ -56,7 +56,7 @@ export class TestRunnerService {
             where: { id: userId },
             select: { githubAccessToken: true },
           })
-        )?.githubAccessToken
+        )?.githubAccessToken ?? undefined
       : undefined;
 
     // Update flow status to RUNNING
