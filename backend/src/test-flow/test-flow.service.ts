@@ -123,7 +123,7 @@ export class TestFlowService {
     }
 
     // Parser les logs JSON si nécessaire
-    let parsedLogs = [];
+    let parsedLogs: string[] = [];
     if (result.logs) {
       try {
         parsedLogs = JSON.parse(result.logs);
