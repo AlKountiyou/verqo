@@ -40,13 +40,13 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-verqo-gray-light to-verqo-white">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-64">
             <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-              <p className="text-muted-foreground">Chargement de vos projets...</p>
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-verqo-turquoise" />
+              <p className="text-verqo-gray-medium">Chargement de vos projets...</p>
             </div>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-verqo-gray-light to-verqo-white">
       <Header />
       
       <main className="container mx-auto px-4 py-8">
