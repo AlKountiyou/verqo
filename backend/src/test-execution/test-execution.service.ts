@@ -6,6 +6,8 @@ import { promisify } from 'util';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { TestExecutionGateway } from './test-execution.gateway';
+import { ConfigService } from '@nestjs/config';
+import { runInDocker } from './docker-runner';
 
 const execAsync = promisify(exec);
 
@@ -19,10 +21,12 @@ export interface TestExecutionResult {
 @Injectable()
 export class TestExecutionService {
   private readonly logger = new Logger(TestExecutionService.name);
+  private dockerChecked = false;
 
   constructor(
     private databaseService: DatabaseService,
     private gateway: TestExecutionGateway,
+    private configService: ConfigService,
   ) {}
 
   async executeTestFlow(flowId: string, githubAccessToken?: string): Promise<TestExecutionResult> {
@@ -45,6 +49,7 @@ export class TestExecutionService {
       status: 'RUNNING',
       lastRun: new Date(),
     });
+    await this.ensureDockerAvailable();
 
     const startTime = Date.now();
     let result: TestExecutionResult;
@@ -159,6 +164,7 @@ export class TestExecutionService {
         logs,
         githubAccessToken,
       );
+      await this.installDependencies(repoPath, logs);
 
       // Exécuter les tests backend selon les méthodes définies
       for (const method of flow.methods) {
@@ -211,6 +217,7 @@ export class TestExecutionService {
         logs,
         githubAccessToken,
       );
+      await this.installDependencies(repoPath, logs);
 
       // Exécuter les tests frontend
       for (const method of flow.methods) {
@@ -308,6 +315,7 @@ export class TestExecutionService {
         logs,
         githubAccessToken,
       );
+      await this.installDependencies(repoPath, logs);
 
       // Exécuter les tests unitaires
       for (const method of flow.methods) {
@@ -416,8 +424,7 @@ export class TestExecutionService {
       // Essayer avec npm test
       try {
         logs.push('Tentative d\'exécution avec npm test...');
-        const { stdout } = await execAsync('npm test', { cwd: repoPath });
-        logs.push(stdout);
+        await this.runDockerCommand(repoPath, logs, 'npm test');
         return { success: true };
       } catch (error) {
         logs.push(`npm test échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
@@ -426,8 +433,7 @@ export class TestExecutionService {
       // Essayer avec Jest directement
       try {
         logs.push('Tentative d\'exécution avec Jest...');
-        const { stdout } = await execAsync('npx jest', { cwd: repoPath });
-        logs.push(stdout);
+        await this.runDockerCommand(repoPath, logs, 'npx jest');
         return { success: true };
       } catch (error) {
         logs.push(`Jest échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
@@ -455,8 +461,7 @@ export class TestExecutionService {
       for (const command of testCommands) {
         try {
           logs.push(`Tentative avec: ${command}`);
-          const { stdout } = await execAsync(command, { cwd: repoPath });
-          logs.push(stdout);
+          await this.runDockerCommand(repoPath, logs, command);
           return { success: true };
         } catch (error) {
           logs.push(`${command} échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
@@ -484,8 +489,11 @@ export class TestExecutionService {
         logs.push('Exécution des tests Lighthouse...');
 
         try {
-          const { stdout } = await execAsync(
-            `npx lighthouse ${stagingUrl} --output=json --chrome-flags="--headless"`,
+          const stdout = await this.runDockerCommand(
+            this.getPerformanceWorkdir(),
+            logs,
+            `npx lighthouse ${stagingUrl} --output=json --chrome-flags="--headless --no-sandbox"`,
+            this.getLighthouseImage(),
           );
           const lighthouseResult = JSON.parse(stdout);
 
@@ -526,8 +534,7 @@ export class TestExecutionService {
       for (const command of testCommands) {
         try {
           logs.push(`Tentative avec: ${command}`);
-          const { stdout } = await execAsync(command, { cwd: repoPath });
-          logs.push(stdout);
+          await this.runDockerCommand(repoPath, logs, command);
           return { success: true };
         } catch (error) {
           logs.push(`${command} échoué: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
@@ -559,6 +566,79 @@ export class TestExecutionService {
         logs: result.logs,
         errorMessage: result.errorMessage,
       },
+    });
+  }
+
+  private async ensureDockerAvailable(): Promise<void> {
+    if (this.dockerChecked) return;
+    try {
+      await execAsync('docker version');
+      this.dockerChecked = true;
+    } catch {
+      throw new Error('Docker est requis pour l\'exécution des tests');
+    }
+  }
+
+  private async installDependencies(repoPath: string, logs: string[]): Promise<void> {
+    const installCommand = await this.getInstallCommand(repoPath);
+    logs.push(`Installation des dépendances: ${installCommand}`);
+    await this.runDockerCommand(repoPath, logs, installCommand);
+  }
+
+  private async getInstallCommand(repoPath: string): Promise<string> {
+    const pnpmLock = path.join(repoPath, 'pnpm-lock.yaml');
+    const yarnLock = path.join(repoPath, 'yarn.lock');
+    const npmLock = path.join(repoPath, 'package-lock.json');
+
+    if (await this.pathExists(pnpmLock)) {
+      return 'corepack enable && pnpm install --frozen-lockfile';
+    }
+    if (await this.pathExists(yarnLock)) {
+      return 'corepack enable && yarn install --frozen-lockfile';
+    }
+    if (await this.pathExists(npmLock)) {
+      return 'npm ci';
+    }
+    return 'npm install';
+  }
+
+  private async pathExists(target: string): Promise<boolean> {
+    try {
+      await fs.access(target);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private getTestImage(): string {
+    return this.configService.get<string>('TEST_RUNNER_IMAGE') || 'node:20-bullseye';
+  }
+
+  private getLighthouseImage(): string {
+    return (
+      this.configService.get<string>('LIGHTHOUSE_RUNNER_IMAGE') ||
+      'ghcr.io/puppeteer/puppeteer:latest'
+    );
+  }
+
+  private getPerformanceWorkdir(): string {
+    return this.configService.get<string>('PERFORMANCE_TMP_DIR') || process.cwd();
+  }
+
+  private async runDockerCommand(
+    repoPath: string,
+    logs: string[],
+    command: string,
+    image?: string,
+  ): Promise<string> {
+    const runnerImage = image || this.getTestImage();
+    logs.push(`Docker: ${runnerImage} -> ${command}`);
+    return runInDocker({
+      image: runnerImage,
+      workdir: repoPath,
+      command,
+      logs,
     });
   }
 }
